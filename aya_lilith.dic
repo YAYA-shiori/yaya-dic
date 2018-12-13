@@ -2740,8 +2740,8 @@ AYL_OnCommunicate
 
 AYF_ComParseFunc
 {
-	_fname = TranslateSystemChar(_argv[0])
-	_fname += 'コミュ'
+	_sname = TranslateSystemChar(_argv[0])
+	_fname = _sname + 'コミュ'
 	
 	_func_array = IARRAY
 	_func_array ,= GETFUNCLIST(_fname)
