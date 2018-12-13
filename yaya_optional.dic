@@ -1,0 +1,351 @@
+//******************************************************************************
+//SHIORI/3.0制御スクリプト for YAYA
+//オプション関数
+//******************************************************************************
+
+#define	ESCAPE_TAG_1	CHR(0x3,0x3)
+#define	ESCAPE_TAG_2	CHR(0x4,0x4)
+
+//******************************************************************************
+//初期化・後始末
+//******************************************************************************
+
+OnSystemLoad.SHIORI3FW.OPTIONAL
+{
+}
+
+OnSystemUnload.SHIORI3FW.OPTIONAL
+{
+	ERASEVAR('SHIORI3FW.FMOCache')
+	ERASEVAR('SHIORI3FW.SakuraNameList')
+	ERASEVAR('SHIORI3FW.FMOTable')
+}
+
+//******************************************************************************
+//さくらスクリプトタグ除去
+//******************************************************************************
+
+//------------------------------------------------------------------------------
+//　関数名：SHIORI3FW.EscapeDangerousTags
+//　機能　：危険なタグのみをエスケープ（\付加）する。
+//　引数　：argv0＝テキスト
+//------------------------------------------------------------------------------
+SHIORI3FW.EscapeDangerousTags{
+	_txt=_argv[0]
+	_txt=REPLACE(_txt,'\\',ESCAPE_TAG_1)
+	_txt=REPLACE(_txt,'\%',ESCAPE_TAG_2)
+	_txt=RE_REPLACE(_txt, /
+		'\\(?=(!\[(' + /
+		'updatebymyself|vanishbymyself|enter,passivemode|' + /
+		'leave,passivemode|lock,repaint|unlock,repaint|biff|' + /
+		'open,browser|open,mailer|raise)' + /
+		'.*?\]|\\j\[))' , /
+		'\\')
+	_txt=REPLACE(_txt,ESCAPE_TAG_2,'\%')
+	_txt=REPLACE(_txt,ESCAPE_TAG_1,'\\')
+	_txt
+}
+
+//------------------------------------------------------------------------------
+//　関数名：SHIORI3FW.EscapeAllTags
+//　機能　：全てのさくらスクリプトタグをエスケープ（\付加）する。
+//　引数　：argv0＝テキスト
+//------------------------------------------------------------------------------
+SHIORI3FW.EscapeAllTags{
+	_txt=_argv[0]
+	_txt=REPLACE(_txt,'\\',ESCAPE_TAG_1)
+	_txt=REPLACE(_txt,'\%',ESCAPE_TAG_2)
+	_txt=REPLACE(_txt,'\','\\')
+	_txt=REPLACE(_txt,'%','\%')
+	_txt=REPLACE(_txt,ESCAPE_TAG_2,'\%')
+	_txt=REPLACE(_txt,ESCAPE_TAG_1,'\\')
+	_txt
+}
+
+//------------------------------------------------------------------------------
+//　関数名：SHIORI3FW.TranslateSystemChar
+//　機能　：演算子などシステム予約文字を別のものに置き換える
+//　引数　：argv0＝テキスト　argv1＝置き換え対象（省略時_）
+//------------------------------------------------------------------------------
+SHIORI3FW.TranslateSystemChar
+{
+	_c = '_'
+	if _argc >= 2 {
+		_c = _argv[1]
+	}
+	_text = TOSTR(_argv[0])
+	_text = RE_REPLACE(_text,"[ !%(CHR(0x22))%(CHR(0x25))#$&()*+,\-/:;<=>?@\[\]`{|}~]",_c)
+	_text
+}
+
+//------------------------------------------------------------------------------
+//　関数名：SHIORI3FW.InitBalloons
+//　機能　：バルーン完全初期化スクリプトを自動生成する
+//------------------------------------------------------------------------------
+SHIORI3FW.InitBalloons
+{
+	_tx = ''
+	_n = ARRAYSIZE(SHIORI3FW.HWnd)
+	for _i = 0 ; _i < _n ; _i++ {
+		if SHIORI3FW.HWnd[_i] != 0 {
+			_tx += "\p[%(_i)]\c\b[-1]"
+		}
+	}
+	_tx
+}
+
+//******************************************************************************
+// FMO関連
+//******************************************************************************
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.IsGhostExist(ゴースト名（sakuraname）[,fmoname])
+//機能　：指定されたゴーストが存在するか調べる
+//　　　　存在しなければ0、存在すれば1を返す
+//------------------------------------------------------------------------------
+SHIORI3FW.IsGhostExist
+{
+	_ghostname=_argv[0]
+	SHIORI3FW.RefreshFMOTable(_argv[1])
+	_result=ASEARCH(_ghostname,SHIORI3FW.SakuraNameList)
+	if _result == -1 {
+		0
+	}else{
+		1
+	}
+}
+
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.RefreshFMOTable(FMO名称,無視するエントリのHWND)
+//機能　：READFMOによってFMOテーブルを作る。
+/*
+FMOはキャッシュされ、変わっていなければ解析は行われない。
+FMO名称を省略すると自動的に"Sakura"になる。
+無視するエントリのHWNDを省略すると、SHIORI3FW.HWnd[0] 変数が利用される。
+（つまり自動的に自身の情報は含まれなくなる）
+
+グローバル変数：SHIORI3FW.FMOCache		FMOの内容のキャッシュ（単純ダンプ）
+グローバル変数：SHIORI3FW.FMOTable		FMOのテーブル（簡易配列。内容は以下）
+id|name|keroname|hwnd|kerohwnd|path|ghostpath,
+id|name|keroname|hwnd|kerohwnd|path|ghostpath,
+...
+
+グローバル変数：SHIORI3FW.SakuraNameList	sakuranameを列挙した汎用配列
+また、いわゆる「非ゴースト」FMOエントリ（一時起動等）はこの時点で排除される。
+*/
+//------------------------------------------------------------------------------
+SHIORI3FW.RefreshFMOTable : void
+{
+	_fmoname=TOSTR(argv[0])
+	if _fmoname == '' {
+		_fmoname='Sakura'
+	}
+
+	_result=READFMO(_fmoname)
+	
+	if SHIORI3FW.FMOCache == _result {
+		//変わっていなければ即座に戻る
+		return
+	}
+
+	//FMOの内容をキャッシュする
+	SHIORI3FW.FMOCache=_result
+	SHIORI3FW.FMOTable=''
+	SHIORI3FW.SakuraNameList=IARRAY
+
+	_ignorehwnd=TOSTR(_argv[1])
+	if _ignorehwnd == '' {
+		_ignorehwnd = SHIORI3FW.HWnd[0]
+	}
+
+	//\r\nで分割
+	_array = SPLIT(_result,C_CRLF)
+	_arraynum=ARRAYSIZE(_array)
+
+	//変数初期化	
+	_fmotable_temp=''
+	_id=''
+	_oldid=''
+	_name=''
+	_keroname=''
+	_hwnd=''
+	_kerohwnd=''
+	_path=''
+	_ghostpath=''
+
+	//結果を擬似２次配列にストア
+	//ssp_fmo_header_000024dc_005c094e.hwnd,6031694
+	//<------------------id----------> key  value
+	for _i=0 ; _i<_arraynum-1 ; _i++ {
+		//一時起動ゴーストかどうか？
+		_buf=_array[_i]
+		_id=_buf[0,'.']
+		if 'SSTPVIEWER-' _in_ _id  || 'ssp_fmo_header_dummyentry' _in_ _id || 'SSSB' _in_ _id
+		{
+			//一時起動なのでなにもしない
+		}else{
+			if _oldid == '' {
+				_oldid = _id
+			}
+			//IDが変わったら一時保存を書き出し
+			if _oldid != _id {
+				_fmotable_temp+="%(_oldid)|%(_name)|%(_keroname)|%(_hwnd)|%(_kerohwnd)|%(_path)|%(_ghostpath),"
+				_oldid = _id
+				_name=''
+				_keroname=''
+				_hwnd=''
+				_kerohwnd=''
+				_path=''
+				_ghostpath=''
+			}
+			_kvpair=_buf[1,'.']
+			_key=_kvpair[0,C_BYTE1]
+			_val=_kvpair[1,C_BYTE1]
+			
+			//各値を一時保存
+			case _key {
+			when 'hwnd'		{_hwnd=_val}
+			when 'name'		{_name=_val}
+			when 'keroname'	{_keroname=_val}
+			when 'path'		{_path=_val}
+			when 'kerohwnd'	{_kerohwnd=_val}
+			when 'ghostpath'{_ghostpath=_val}
+			}
+		}
+	}
+	//最後のエントリを書き出し
+	_fmotable_temp += "%(_id)|%(_name)|%(_keroname)|%(_hwnd)|%(_kerohwnd)|%(_path)|%(_ghostpath)"
+	
+	//無視するHWNDを取り除き、同時にSakuraNameListを作成
+	_count_temp=ARRAYSIZE(_fmotable_temp)
+	for _i=0;_i<_count_temp;_i++ {
+		_tablestr=_fmotable_temp[_i]
+		_tablehwnd=_tablestr[3,'|']
+		if _tablehwnd != _ignorehwnd {
+			SHIORI3FW.FMOTable += _tablestr+','
+			SHIORI3FW.SakuraNameList=(SHIORI3FW.SakuraNameList,_tablestr[1,'|'])
+		}
+	}
+	
+	//最後がカンマなら取り除く
+	if SUBSTR(SHIORI3FW.FMOTable,STRLEN(SHIORI3FW.FMOTable)-1,1)==',' {
+		SHIORI3FW.FMOTable=SUBSTR(SHIORI3FW.FMOTable,0,STRLEN(SHIORI3FW.FMOTable)-1)
+	}
+}
+
+//******************************************************************************
+// テキスト処理
+//******************************************************************************
+
+//------------------------------------------------------------------------------
+//　関数名：SHIORI3FW.MakeJustText
+//　機能　：指定した長さになるまでスペースを埋める / 省略する
+//　引数　：argv0＝テキスト　argv1＝文字数（半角換算）
+//------------------------------------------------------------------------------
+
+//---- 後ろにスペースを補完する関数 (from和音)
+SHIORI3FW.MakeLongText
+{
+	_menuitem = _argv[0]
+	_len = _argv[1] - GETSTRBYTES(_menuitem,127)
+
+	if _len <= 0 {
+		_menuitem
+		return
+	}
+	
+	_space = '　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　'
+	_menuitem += SUBSTR(_space,0,_len / 2)
+	
+	if _len % 2 > 0 {
+		_menuitem += " "
+	}
+	_menuitem
+}
+
+//---- 適当な長さで切る -------------------------------------------
+SHIORI3FW.MakeShortText
+{
+	if _argc < 2 {
+		'';
+		return;
+	}
+	
+	_src = _argv[0]
+	_cut = TOINT(_argv[1])
+	_text = ''
+	
+	if GETSTRBYTES(_argv[0],127) <= _cut {
+		_argv[0]
+		return;
+	}
+	
+	_num = STRLEN(_src)
+	_lendiff = 0 //後で保存するためにスコープを一つ下げるためのダミー代入
+	
+	while 1 {
+		_text = SUBSTR(_argv[0],0,_num)
+		
+		_lendiff = _cut - GETSTRBYTES(_text,127) - 2
+		if _lendiff >= 0 {
+			break;
+		}
+		_num -= 1
+		if _num <= 0 {
+			''
+			return
+		}
+	}
+	
+	if _lendiff > 0 {
+		_text += '...'
+	}
+	else {
+		_text += '..'
+	}
+	_text
+}
+
+//---- 長さをきっちり調節
+SHIORI3FW.MakeJustText
+{
+	_text = SHIORI3FW.MakeLongText(_argv[0],_argv[1])
+	if _text != _argv[0] { //短すぎた
+		_text
+		return
+	}
+	
+	_text = SHIORI3FW.MakeShortText(_argv[0],_argv[1])
+	_text
+}
+
+//******************************************************************************
+// その他
+//******************************************************************************
+
+//---- HTTPコード->日本語 _argv[0]にコード
+
+SHIORI3FW.HTTPCodeToMessage
+{
+	case _argv[0] {
+		when '403' {
+			'アクセス拒否'
+		}
+		when '404','410' {
+			'ファイル無し'
+		}
+		when '500','502','503' {
+			'サーバ側の不調'
+		}
+		when 'timeout' {
+			'タイムアウト'
+		}
+		when 'fileio' {
+			'ファイル書き込みエラー'
+		}
+		when 'artificial' {
+			'手動中断'
+		}
+	}
+}
+

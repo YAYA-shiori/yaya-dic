@@ -1,0 +1,2810 @@
+/*---------------------------------------------------------------------
+	かんたん文スクリプト「あやりりす」
+---------------------------------------------------------------------*/
+//***************************************************************************************************
+OnSystemLoad.ﾟAYALILITH : void //ﾟはソート順序を最後にするため
+{
+	stroke = (1,1,1)
+	stroketimer = (1,1,1)
+	strokeid = ('','','')
+	half_menu_counter = 0
+	boot_init = 0
+	
+	mikire_flag_array = IARRAY
+	
+	最終マウスイベント分 = systemuptime / 60
+	ゴースト起動時刻 = systemuptime
+	
+	累積起動時間初期 = 累積起動時間
+	
+	if ISVAR('半分メニュー無効') == 0 {
+		半分メニュー無効 = 0
+	}
+	
+	_a = GETFUNCLIST('ゴースト起動前の処理')
+	foreach _a;_f {
+		EVAL(_f)
+	}
+	
+	if username == '' {
+		username = 名前入力初期WRAP()
+	}
+	
+	mousedown_time = -1
+	mousedown_reference_array = IARRAY
+	mousedown_exec_complete = 0
+	
+	mouseevent_time = IARRAY
+	mouseevent_colname = IARRAY
+	mouseevent_count = IARRAY
+	マウスイベント連続回数 = 1
+	マウスイベントキャラID = 0
+	
+	着せ替え情報 = IARRAY
+	着せ替え有効パーツリスト = IARRAY
+	着せ替え有効パーツリストEX = IARRAY
+	着せ替え有効カテゴリリスト = IARRAY
+	着せ替え有効カテゴリリストEX = IARRAY
+	
+	モード = ''
+	現在の日 = GETTIME()[2]
+	
+	_ft = <<'
+	OnChoiceSelect
+	OnAnchorSelect
+	OnBoot
+	OnClose
+	OnFirstBoot
+	OnGhostChanging
+	OnGhostChanged
+	OnGhostCalling
+	OnGhostCalled
+	OnGhostCallComplete
+	OnOtherGhostClosed
+	OnShellChanging
+	OnShellChanged
+	OnMinuteChange
+	OnOffScreen
+	OnBalloonChange
+	OnMouseMove
+	OnMouseWheel
+	OnMouseClick
+	OnMouseDoubleClick
+	OnMouseDragStart
+	OnMouseDragEnd
+	OnMouseGesture
+	OnMouseDown
+	OnMouseUp
+	OnCommunicate
+	OnRecommendsiteChoice
+	OnKeyPress
+	OnChoiceTimeout
+	OnBalloonTimeout
+	OnBalloonBreak
+	OnSSTPBreak
+	OnBalloonClose
+	On_otherghostname
+	On_sakura.portalsites
+	On_sakura.recommendsites
+	On_kero.recommendsites
+	'>>
+	_fa = SPLIT(_ft,C_CRLF)
+	
+	foreach _fa;_f {
+		if ISFUNC(_f) {
+			LOGGING("警告：関数/イベント %(_f) はあやりりすで上書きされます")
+		}
+	}
+}
+
+OnSystemUnload.ﾟAYALILITH : void //ﾟはソート順序を最後にするため
+{
+	ERASEVAR('累積起動時間初期')
+	
+	ERASEVAR('stroke','stroketimer','strokeid')
+	ERASEVAR('half_menu_counter')
+	ERASEVAR('boot_init')
+	
+	ERASEVAR('mikire_flag_array')
+	
+	ERASEVAR('最終マウスイベント分')
+	ERASEVAR('ゴースト起動時刻')
+	ERASEVAR('タグなしトーク')
+	ERASEVAR('終了しない')
+	
+	ERASEVAR('installedplugin_name','installedplugin_id')
+	ERASEVAR('ghostexlist')
+	
+	ERASEVAR('mousedown_reference_array','mousedown_time','mousedown_exec_complete')
+	ERASEVAR('mouseevent_time''mouseevent_colname','mouseevent_count','マウスイベント連続回数','クリック連続回数','マウスイベントキャラID')
+	
+	//'情報_シェル名','情報_バルーン名'は消さない
+	ERASEVAR('情報_ゴースト名','情報_キャラ名')
+	
+	ERASEVAR('情報_ユーザー名','情報_ユーザー誕生日')
+
+	ERASEVAR('情報_モニタ色数','情報_モニタ幅','情報_モニタ高さ')
+	
+	ERASEVAR('スタンプ帳動作','スタンプ帳情報')
+	
+	ERASEVAR('名前入力識別')
+	
+	ERASEVAR('着せ替え情報','着せ替え有効パーツリスト','着せ替え有効パーツリストEX','着せ替え有効カテゴリリスト','着せ替え有効カテゴリリストEX')
+	
+	ERASEVAR('今日はユーザー誕生日','現在の日')
+
+	_a = GETFUNCLIST('ゴースト終了前の処理')
+	foreach _a;_f {
+		EVAL(_f)
+	}
+}
+
+OnTranslateInternal.ﾟAYALILITH //ﾟはソート順序を最後にするため
+{
+	if SUBSTR(SHIORI3FW.Eventid,0,3) == 'On_' {
+		_argv[0] //ret
+		return
+	}
+	
+	if ! boot_init {
+		if ISFUNC('起動初期化スクリプト') {
+			_v = REPLACE(EVAL('起動初期化スクリプト'),'\e','')
+			_v + _argv[0] //ret
+		}
+		else {
+			_argv[0] //ret
+		}
+		boot_init = 1
+	}
+	else {
+		_argv[0] //ret
+	}
+}
+
+AYL_OnTextDrop
+{
+	if TOINT(AYALilithEX) != 0 {
+		REPLACE(reference.raw[0],C_BYTE1,C_CRLF)
+	}
+	else {
+		REPLACE(reference.raw[0],C_BYTE1,' ')
+	}
+}
+
+累積起動時間
+{
+	ghostupmin_total() / 60
+}
+
+累積起動回数
+{
+	ghostuptimes
+}
+
+ウエイト消去
+{
+	RE_REPLACE(_argv[0],'\\(w[0-9]|_w\[[0-9]+?\])','')
+}
+
+AYL_OnSecondChange
+{
+	_mikire = TOINT(reference[1])
+	if _mikire != TOINT(mikire_flag_array[0]) {
+		mikire_flag_array[0] = _mikire
+		
+		_fname = ''
+		if _mikire {
+			_fname = 関数名付加調整('見切れ0')
+		}
+		else {
+			_fname = 関数名付加調整('見切れ解除0')
+		}
+		if ISFUNC(_fname) {
+			_v = EVAL(_fname)
+			if STRLEN(_v) {
+				_v
+				return
+			}
+		}
+	}
+	
+	//ホールド
+	if ARRAYSIZE(mousedown_reference_array) && (mousedown_exec_complete == 0) {
+		if (GETTICKCOUNT() - mousedown_time) > 1000 {
+			//いったんreferenceを仮保存し、擬似マウスイベントに(MouseDownのreferenceを上書き)
+			_r = reference
+			reference = mousedown_reference_array
+			
+			mousedown_exec_complete = 1
+			
+			_result = MouseEventExec('ホールド')
+			if STRLEN(_result) {
+				_result
+				return
+			}
+			
+			reference = _r
+		}
+	}
+	
+	_fname = 関数名付加調整('OnSecondChange')
+	if ISFUNC(_fname) {
+		EVAL(_fname)
+		return
+	}
+}
+
+AYL_OnOffScreen
+{
+	_mikire_after = IARRAY
+	
+	_fa = SPLIT(reference[0],C_BYTE1)
+	foreach _fa;_f {
+		_mikire_after[TOINT(_f)] = 1
+	}
+	
+	_n = ARRAYSIZE(mikire_flag_array)
+	_n2 = ARRAYSIZE(_mikire_after)
+	if _n < _n2 {
+		_n = _n2
+	}
+	
+	for _i = 0 ; _i < _n ; _i++ {
+		if mikire_flag_array[_i] != _mikire_after[_i] {
+			_fname = ''
+			if _mikire_after[_i] {
+				_fname = スコープ変換調整('見切れ%(_scope)',_i)
+			}
+			else {
+				_fname = スコープ変換調整('見切れ解除%(_scope)',_i)
+			}
+			if STRLEN(_fname) {
+				_v = EVAL(_fname)
+				if STRLEN(_v) {
+					_v
+					return
+				}
+			}
+			return
+		}
+	}
+	
+	mikire_flag_array = _mikire_after
+}
+
+AYL_OnKeyPress
+{
+	_fname = ''
+	if TOINT(reference[2]) >= 2 {
+		_fname = 関数名付加調整('キー入力連続' + TOUPPER(reference[0]))
+	}
+	else {
+		_fname = 関数名付加調整('キー入力' + TOUPPER(reference[0]))
+	}
+	if ISFUNC(_fname) {
+		_v = EVAL(_fname)
+		if STRLEN(_v) {
+			_v
+			return
+		}
+	}
+	
+	if TOLOWER(reference[0]) == 'd' {
+		if 'shift' _in_ reference[4] {
+			AYLXX_Debug_Menu_Exec
+		}
+	}
+}
+
+AYLXX_Debug_Menu_Exec
+{
+	"\_q\0\b[2]"
+	--
+	_arr = GETFUNCLIST('OnAYLXX_Debug_')
+	_txt = ''
+	
+	_n = ARRAYSIZE(_arr)
+	for _i = 0 ; _i < _n ; _i++ {
+		_txt += メニュー(REPLACE(_arr[_i],'OnAYLXX_Debug_',''),_arr[_i])
+		_txt += '\n'
+	}
+	
+	_txt
+	--
+	\n[half]
+	--
+	メニュー('閉じる','script:\b[-1]')
+}
+
+OnAYLXX_Debug_切替先リストを書き出し
+{
+	_a = GETFUNCLIST()
+	_x = RE_ASEARCHEX('(?<!自分)(?<!他のゴースト)(?<!その他)へ変更$',_a)
+	
+	ayl_gn_list = IARRAY
+	
+	_n = ARRAYSIZE(_x)
+	if _n == 0 {
+		'\0切替なし'
+		return
+	}
+	
+	for _i = 0 ; _i < _n ; _i++ {
+		_fn = _a[_x[_i]]
+		_fn = RE_REPLACE(_fn,'へ変更$','')
+		_fn = RE_REPLACE(_fn,'^＊','')
+		ayl_gn_list ,= _fn
+	}
+	
+	ayl_gn_from = IARRAY
+	for _i = 0 ; _i < _n ; _i++ {
+		_fn = ayl_gn_list[_i] + 'から変更'
+		ayl_gn_from[_i] = ( STRLEN(GhostEventSearch(_fn)) > 0 )
+	}
+	
+	_scr1 = '\![get,property,OnAYLXXWriteChangeList2'
+	_scr2 = '\![get,property,OnAYLXXWriteChangeList3'
+	_scr3 = '\![get,property,OnAYLXXWriteChangeList4'
+	
+	for _i = 0 ; _i < _n ; _i++ {
+		_scr1 += ',' + エスケープ('ghostlist(' + ayl_gn_list[_i] + ').name')
+		_scr2 += ',' + エスケープ('ghostlist(' + ayl_gn_list[_i] + ').craftmanurl')
+		_scr3 += ',' + エスケープ('ghostlist(' + ayl_gn_list[_i] + ').sakuraname')
+	}
+	
+	_scr1 += ']'
+	_scr2 += ']'
+	_scr3 += ']'
+	
+	_scr1 + _scr2 + _scr3
+}
+
+OnAYLXXWriteChangeList2
+{
+	ayl_sakuraname_list = reference
+}
+
+OnAYLXXWriteChangeList3
+{
+	ayl_crafturl_list = reference
+}
+
+OnAYLXXWriteChangeList4
+{
+	void RE_SEARCH(GETSETTING('coreinfo.path'),'\\([^\\]+)\\ghost\\master\\')
+	_folder_name = RE_GETSTR()[1]
+	
+	_fullname = reference
+	
+	void MKDIR('var')
+	
+	_filename = "var/%(_folder_name)_change_list.txt"
+	
+	void FCHARSET(1)
+	
+	void FOPEN(_filename,'w')
+	
+	_q = '"'
+
+	_gt = GETTIME()
+	_s = STRFORM('$04d/$02d/$02d $02d:$02d:$02d',_gt[0],_gt[1],_gt[2],_gt[4],_gt[5],_gt[6])
+	
+	void FWRITE(_filename,"<p class=%(_q)ghostchange%(_q)>%(_s)現在の切替リスト<br />このリストは、ゴーストテンプレート<a href=%(_q)http://ms.shillest.net/yayalilith.xhtml%(_q)>「あやりりす」</a>の開発用機能により、自動生成されています。</p>")
+	void FWRITE(_filename,"<table class=%(_q)ghostchange%(_q)><tbody><tr><th>ゴースト名</th><th>状態</th></tr>")
+	
+	_n = ARRAYSIZE(ayl_gn_list)
+	for _i = 0 ; _i < _n ; _i++ {
+		_gnm = ayl_gn_list[_i]
+		if STRLEN(_fullname[_i]) {
+			_gnm = "%(_fullname[_i]) (%(ayl_sakuraname_list[_i]))"
+		}
+		_det = '⇒片道'
+		_class = 'one-way'
+		if ayl_gn_from[_i] {
+			_det = '⇔相互'
+			_class = 'round-trip'
+		}
+		_a_start = ''
+		_a_end = ''
+		if STRLEN(ayl_crafturl_list[_i]) {
+			_a_start = "<a href=%(_q)%(ayl_crafturl_list[_i])%(_q)>"
+			_a_end = '</a>'
+		}
+		
+		void FWRITE(_filename,"<tr><td class=%(_q)%(_class)%(_q)>%(_a_start)%(HTMLエスケープ(_gnm))%(_a_end)</td><td class=%(_q)%(_class)%(_q)>%(_det)</td></tr>")
+	}
+	
+	void FWRITE(_filename,'</tbody></table>')
+	void FCLOSE(_filename)
+	
+	ERASEVAR('ayl_gn_list')
+	ERASEVAR('ayl_gn_from')
+	ERASEVAR('ayl_sakuraname_list')
+	ERASEVAR('ayl_crafturl_list')
+	
+	'\0完了。'
+}
+
+OnAYLXX_Debug_AYA命令直接実行
+{
+	if _argc {
+		'\![open,inputbox,OnAYLXXInput_DEBUG_COMMAND,0,' + エスケープ(_argv[0]) + ']'
+	}
+	else {
+		'\![open,inputbox,OnAYLXXInput_DEBUG_COMMAND,0]'
+	}
+}
+
+OnAYLXXInput_DEBUG_COMMAND
+{
+	if STRLEN(reference[0]) == 0 {
+		return
+	}
+	
+	SETLASTERROR(0)
+	_text = TOSTR(EVAL(reference[0]))
+	
+	if GETLASTERROR {
+		"\h\f[bold,true]ERROR:%(GETLASTERROR)\f[bold,default]\n"
+	}
+	--
+	'\_!' + _text + '\_!'
+	--
+	OnAYLXX_Debug_AYA命令直接実行(reference[0])
+}
+
+AYL_OnMinuteChange
+{
+	_r = 累積起動時間
+	if 累積起動時間初期 != _r {
+		累積起動時間初期 = _r
+		
+		if ISFUNC('累積起動時間変化') {
+			_rs = EVAL('累積起動時間変化(_r)')
+			if _rs != '' {
+				_rs
+				return
+			}
+		}
+	}
+	
+	_t = GETTIME()
+	
+	if _t[5] == 0 {
+		if 現在の日 != _t[2] {
+			現在の日 = _t[2]
+			
+			_fname = 関数名付加調整("日付変更%(_t[1])月%(_t[2])日")
+			if ISFUNC(_fname) {
+				_v = EVAL(_fname)
+				if STRLEN(_v) {
+					_v
+					return
+				}
+			}
+			
+			_fname = 関数名付加調整("日付変更")
+			if ISFUNC(_fname) {
+				_v = EVAL(_fname)
+				if STRLEN(_v) {
+					_v
+					return
+				}
+			}
+			AYL_DateInit
+		}
+		
+		_fname = 関数名付加調整("時報%(_t[1])月%(_t[2])日%(_t[4])時")
+		if ISFUNC(_fname) {
+			_v = EVAL(_fname)
+			if STRLEN(_v) {
+				_v
+				return
+			}
+		}
+		
+		_fname = 関数名付加調整("時報%(_t[4])時")
+		if ISFUNC(_fname) {
+			_v = EVAL(_fname)
+			if STRLEN(_v) {
+				_v
+				return
+			}
+		}
+		
+		_fname = 関数名付加調整("時報")
+		if ISFUNC(_fname) {
+			_v = EVAL(_fname)
+			if STRLEN(_v) {
+				_v
+				return
+			}
+		}
+	}
+	
+	_fname = 関数名付加調整('OnMinuteChangeAYALILITH')
+	if ISFUNC(_fname) {
+		EVAL(_fname)
+		return
+	}
+}
+
+AYL_DateInit
+{
+	if GETTYPE(SHIORI3FW.UserBirthday) != 3 {
+		今日はユーザー誕生日 = 0
+		return
+	}
+	if STRLEN(SHIORI3FW.UserBirthday) == 0 {
+		今日はユーザー誕生日 = 0
+		return
+	}
+	
+	_a1 = GETTIME()
+	_d1 = JOIN(_a1[1],_a1[2],',')
+	
+	_a2 = SPLIT(SHIORI3FW.UserBirthday,',')
+	_d2 = JOIN(TOINT(_a2[1]),TOINT(_a2[2]),',')
+	
+	if _d1 == _d2 {
+		今日はユーザー誕生日 = 1
+	}
+	else {
+		今日はユーザー誕生日 = 0
+	}
+}
+
+/*----------------------------------------------------------------------------------
+	イベント振り分け
+----------------------------------------------------------------------------------*/
+
+OnGhostEventTranslate.AYL
+{
+	_fname = 'AYL_' + _argv[0]
+	if ISFUNC(_fname) {
+		_fname
+		return
+	}
+	
+	_fname = 関数名付加調整(_argv[0])
+	if ISFUNC(_fname) {
+		_fname
+		return
+	}
+}
+
+関数名付加調整
+{
+	_arg0 = _argv[0]
+	_arg1 = _argv[1]
+	if _argc < 2 {
+		_arg1 = -1
+	}
+	
+	if ISFUNC('モード処理') {
+		_mode_array = EVAL("モード処理(_argv[0],_argv[1])")
+		foreach _mode_array ; _ma {
+			_fname = _argv[0] + TOSTR(_ma)
+			if ISFUNC(_fname) {
+				_fname
+				return
+			}
+		}
+	}
+	
+	if ISVAR('モード') {
+		_fname = _argv[0] + TOSTR(モード)
+		if ISFUNC(_fname) {
+			_fname
+			return
+		}
+	}
+	
+	'AYL_NonExistent_Func_Name_Dummy'
+}
+
+スコープ変換調整
+{
+	_fname_orig = TOSTR(_argv[0])
+	_scope_orig = TOINT(_argv[1])
+	
+	_a = IARRAY()
+	if ISFUNC('スコープ変換') {
+		_a ,= EVAL('スコープ変換(_scope_orig)')
+	}
+	_a ,= TOSTR(_scope_orig)
+	_a ,= HAN2ZEN(TOSTR(_scope_orig))
+	
+	_n = ARRAYSIZE(_a)
+	for _i = 0 ; _i < _n ; _i++ {
+		_scope = _a[_i]
+		void EVAL('_fname = "' + _fname_orig + '"')
+		_fname = 関数名付加調整(_fname)
+		if ISFUNC(_fname) {
+			_fname
+			return
+		}
+	}
+	''
+}
+
+AYL_OnChoiceSelect
+{
+	_fn = 関数名付加調整(reference[0])
+	if ISFUNC(_fn) {
+		EVAL(_fn)
+		return
+	}
+	
+	if SUBSTR(reference[0],0,6) == '|TEST|' {
+		TOSTR(EVAL(SUBSTR(reference[0],6,10000)))
+		return
+	}
+}
+
+AYL_OnChoiceHover
+{
+	_fn = 関数名付加調整(reference[1] + 'ホバー')
+	if ISFUNC(_fn) {
+		EVAL(_fn)
+		return
+	}
+}
+
+AYL_OnAnchorSelect
+{
+	if RE_SEARCH(reference[0],'^(http|https)://') {
+		"\C\![open,browser,%(reference[0])]"
+		return
+	}
+	
+	if RE_SEARCH(reference[0],'^script:') {
+		ERASE(reference[0],0,7)
+		return
+	}
+
+	_fn = 関数名付加調整('アンカー' + reference[0])
+	if ISFUNC(_fn) {
+		EVAL(_fn)
+		return
+	}
+
+	if ISFUNC(reference[0]) {
+		EVAL(reference[0])
+		return
+	}
+}
+
+AYLTimeoutCoreEx
+{
+	if STRLEN(SHIORI3FW.EventidOld) {
+		_fn = 関数名付加調整(_argv[1] + SHIORI3FW.EventidOld)
+		if ISFUNC(_fn) {
+			EVAL(_fn + '(reference[0])')
+			return
+		}
+		
+		_fn = 関数名付加調整(_argv[0] + SHIORI3FW.EventidOld)
+		if ISFUNC(_fn) {
+			EVAL(_fn + '(reference[0])')
+			return
+		}
+	}
+	
+	_a_evt = ASORT('string,ascending',GETFUNCLIST(_argv[1]))
+	foreach _a_evt ; _evt {
+		_r = EVAL(_evt)
+		if STRLEN(_r) {
+			_r
+			return
+		}
+	}
+	
+	_a_evt = ASORT('string,ascending',GETFUNCLIST(_argv[0]))
+	foreach _a_evt ; _evt {
+		_r = EVAL(_evt)
+		if STRLEN(_r) {
+			_r
+			return
+		}
+	}
+}
+
+AYL_OnChoiceTimeout
+{
+	AYLTimeoutCoreEx('OnChoiceTimeout','選択肢時間切れ')
+}
+AYL_OnBalloonTimeout
+{
+	AYLTimeoutCoreEx('OnBalloonTimeout','バルーン時間切れ')
+}
+AYL_OnBalloonBreak
+{
+	AYLTimeoutCoreEx('OnBalloonBreak','バルーン中断')
+}
+AYL_OnSSTPBreak
+{
+	AYLTimeoutCoreEx('OnSSTPBreak','SSTP中断')
+}
+AYL_OnBalloonClose
+{
+	AYLTimeoutCoreEx('OnBalloonClose','バルーン閉')
+}
+
+//***************************************************************************************************
+/*---------------------------------------------------------------------
+	コア
+---------------------------------------------------------------------*/
+DelayedTalkEval
+{
+	_txtarray = SPLIT(_argv[0],C_CRLF)
+	_output = ''
+	
+	if GETTYPE(_txtarray) == 4 {
+		_n = ARRAYSIZE(_txtarray)
+		_inited = 0
+		for _i = 0 ; _i < _n ; _i++ {
+			if _inited {
+				_output += C_CRLF
+			}
+			_inited = 1
+			_output += EVAL(CHR(0x22) + REPLACE(_txtarray[_i],CHR(0x22),'%(CHR(0x22))') + CHR(0x22))
+		}
+	}
+	else {
+		_output += EVAL(CHR(0x22) + REPLACE(_argv[0],CHR(0x22),'%(CHR(0x22))') + CHR(0x22))
+	}
+	
+	TOSTR(_output)
+}
+
+GetCurrentEto
+{
+	_e = ('子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥')
+	_y = GETTIME()[0]
+	_e[(_y+8) % 12]
+}
+
+GetEvalTalkArray
+{
+	_t = GETTIME()
+	_y = _t[0]
+	_m = _t[1]
+	_d = _t[2]
+	_ms = GetMonthSlot
+	_holiday = GetHolidaySlot
+	_dayofweek = GetDOWSlot
+	
+	_season = GetSeasonSlot
+	_time = GetTimeSlotList
+
+	_slots = IARRAY
+	
+	//一般的なおおざっぱなもの
+	if _argc == 0 || _argv[0] == 0 {
+		//朝,昼,夕,夜,深夜etc...
+		_slots ,= _time
+		//何時
+		_slots ,= "%(_t[4])時"
+		//春,夏,秋,冬
+		_slots ,= _season
+		//「春の朝」
+		_slots ,= "%(_season)の%(_time)"
+		//「朝食時」「昼食時」「夕食時」
+		_slots ,= GetMesiSlot
+		//?月
+		_slots ,= "%(_m)月"
+		//?月上旬,中旬,下旬
+		_slots ,= "%(_m)月%(GetDaySlot)"
+		//日曜,月曜...
+		_slots ,= "%(_dayofweek)曜"
+		//第?週日曜,月曜...
+		_slots ,= "第%(((_d - 1) / 7) + 1)週%(_dayofweek)曜"
+		//行事
+		_slots ,= _ms
+		//行事?曜
+		_slots ,= "%(_ms)%(_dayofweek)曜"
+		//平日休日
+		_slots ,= _holiday
+		//行事・平日休日
+		_slots ,= "%(_ms)%(_holiday)"
+		//季節・状態
+		_slots ,= "%(_season)の%(_holiday)"
+		//「平日の朝」
+		_slots ,= "%(_holiday)の%(_time)"
+		//自ゴーストの状態
+		_slots ,= 'シェル' + SHIORI3FW.ShellName
+		_slots ,= 'バルーン' + SHIORI3FW.BalloonName
+		_slots ,= 着せ替え有効パーツリストEX
+		_slots ,= 着せ替え有効カテゴリリストEX
+		//その他
+		if ISFUNC('あやりりす・日付イベントユーザー定義') {
+			_slots ,= EVAL('あやりりす・日付イベントユーザー定義')
+		}
+	}
+	
+	//特定の日付処理は特別
+	if _argc == 0 || _argv[0] == 1 {
+		//誕生日
+		if 今日はユーザー誕生日 {
+			_slots ,= 'ユーザー誕生日'
+		}
+		//?月?日
+		_slots ,= "%(GetCurrentEto())年%(_m)月%(_d)日"
+		_slots ,= "%(_y)年%(_m)月%(_d)日"
+		_slots ,= "%(_m)月%(_d)日"
+		//?月第?週日曜,月曜...
+		_slots ,= "%(_m)月第%(((_d - 1) / 7) + 1)週%(_dayofweek)曜"
+	}
+	
+	_slots
+}
+
+TalkEval
+{
+	//処理用！さわるな！！
+	_argv[0] = 関数名付加調整(_argv[0])
+	
+	if ISFUNC(_argv[0]) {
+		_var = EVAL(_argv[0])
+		_type = GETTYPE(_var)
+		if _type == 4 {
+			_var
+		}
+		elseif _type == 0 {
+			IARRAY
+		}
+		else {
+			CVSTR(_var)
+			if STRLEN(_var) {
+				(_var,IARRAY)
+			}
+			else {
+				IARRAY
+			}
+		}
+	}
+	else {
+		IARRAY
+	}
+}
+
+GetBootSharedScript
+{
+	MouseEventTimeReset
+	
+	_s = ''
+	
+	_a = GETFUNCLIST('起動共通スクリプト')
+	foreach _a;_f {
+		_s += EVAL(_f)
+	}
+	
+	_s
+}
+
+GetCloseSharedScript
+{
+	_s = ''
+	
+	_a = GETFUNCLIST('終了共通スクリプト')
+	foreach _a;_f {
+		_s += EVAL(_f)
+	}
+	
+	_s
+}
+
+//***************************************************************************************************
+/*---------------------------------------------------------------------
+	ランダムトーク処理
+	元あったRandomTalkは消すこと
+---------------------------------------------------------------------*/
+
+/*=====かきかたの例============================
+ランダムトーク3月 : array
+{
+	'ごにょごにょ'
+}
+
+1.かならず最後に : array とつけること！
+2.' 'でトークをかこむこと！ " " じゃないよ！
+=============================================*/
+
+ランダムトーク実行
+{
+	RandomTalk()
+}
+
+RandomTalk
+{
+	//高速ランダムトーク処理用
+	_vf = DelayedTalkEval(RandomTalkEx())
+	
+	if ISFUNC('RandomTalk_AfterDo') {
+		_vf2 = EVAL('RandomTalk_AfterDo(_vf)')
+		if STRLEN(_vf2) > 0 {
+			_vf = _vf2
+		}
+	}
+	
+	_vf
+}
+
+GetSeasonSlot
+{
+	//3-5,6-8,9-11,12-2……でいいよね？
+	_m = month
+	if _m >= 3 && _m <= 5 { '春' }
+	elseif _m >= 6 && _m <= 8 { '夏' }
+	elseif _m >= 9 && _m <= 11 { '秋' }
+	else { '冬' }
+}
+
+GetDaySlot
+{
+	//10日,20日で区切りにしてみた
+	_d = day
+	if _d <= 10 { '上旬' }
+	elseif _d <= 20 { '中旬' }
+	else { '下旬' }
+}
+
+GetTimeSlotList
+{
+	if ISFUNC('あやりりす・時間帯定義') {
+		EVAL('あやりりす・時間帯定義')
+		return
+	}
+	
+	//おおざっぱに時間判定
+	switch hour {
+		'深夜' //0時
+		'深夜' //1時
+		'深夜' //2時
+		'深夜' //3時
+		'深夜' //4時
+		'朝' //5時
+		'朝' //6時
+		'朝' //7時
+		'朝' //8時
+		'昼' //9時
+		'昼' //10時
+		'昼' //11時
+		'昼' //12時
+		'昼' //13時
+		'昼' //14時
+		'昼' //15時
+		'夕方' //16時
+		'夕方' //17時
+		'夜' //18時
+		'夜' //19時
+		'夜' //20時
+		'夜' //21時
+		'夜' //22時
+		'深夜' //23時
+	}
+}
+
+GetMesiSlot
+{
+	_h = hour
+	if _h == 7 || _h == 8 {
+		'朝食時'
+	}
+	elseif _h == 12 {
+		'昼食時'
+	}
+	elseif _h == 18 || _h == 19 {
+		'夕食時'
+	}
+	else {
+		IARRAY
+	}
+}
+
+GetDOWSlot
+{
+	//曜日
+	switch GETTIME[3] {
+		'日'
+		'月'
+		'火'
+		'水'
+		'木'
+		'金'
+		'土'
+	}
+}
+
+GetHolidaySlot
+{
+	if ISFUNC('あやりりす・休日定義') {
+		EVAL('あやりりす・休日定義')
+		return
+	}
+	
+	//平日・休日
+	switch GETTIME[3] {
+		'休日'
+		'平日'
+		'平日'
+		'平日'
+		'平日'
+		'平日'
+		'休日'
+	}
+}
+
+
+
+GetMonthSlot
+{
+	if ISFUNC('あやりりす・行事定義') {
+		EVAL('あやりりす・行事定義')
+		return
+	}
+	
+	//月をおおざっぱに
+	_月 = GETTIME[1]
+	_日 = GETTIME[2]
+	//_曜日 = GetDOWSlot
+	//_第n週 = ((_日 - 1) / 7) + 1
+	
+	if _月 == 1 && _日 <= 3 { //正月は特別
+		'正月'
+		return
+	}
+	if _月 == 12 && _日 == 24 { //正月は特別
+		'クリスマス'
+		return
+	}
+	if _月 == 12 && _日 == 25 { //正月は特別
+		'クリスマス'
+		return
+	}	
+	if _月 == 12 && _日 <= 31 || _日 >= 26 { //正月は特別
+		'年末'
+		return
+	}	
+	//標準は仕事
+	'仕事'
+}
+
+キーワードランダムトーク
+{
+	_key = TOSTR(_argv[0])
+	_talk = DelayedTalkEval(KeywordRandomTalkExec(_key))
+	_talk = REPLACE(_talk,_key,"\f[bold,true]%(_key)\f[bold,default]")
+	_talk
+}
+
+KeywordRandomTalkExec : nonoverlap
+{
+	_text = _argv[0]
+	_array = RandomTalkArray
+	_output = IARRAY
+	
+	foreach _array ; _script {
+		if _text _in_ _script {
+			_output ,= _script
+		}
+	}
+	
+	parallel _output
+}
+
+ClearRandomTalkArrayNewTalk : void
+{
+	last_new_talk_id_array = IARRAY
+	last_new_talk_array = IARRAY
+}
+
+RandomTalkArrayNewTalk
+{
+	_talknew_func = IARRAY
+	_talknew_func ,= '新規追加ランダムトーク'
+	_earray = GetEvalTalkArray
+	_n = ARRAYSIZE(_earray)
+	for _i = 0 ; _i < _n ; _i++ {
+		_talknew_func ,= '新規追加ランダムトーク' + _earray[_i]
+	}
+	
+	if ISVAR('last_new_talk_id_array') == 0 {
+		last_new_talk_id_array = IARRAY
+	}
+	if ISVAR('last_new_talk_array') == 0 {
+		last_new_talk_array = IARRAY
+	}
+	
+	_changed = 0
+	_n = ARRAYSIZE(_talknew_func)
+	for _i = 0 ; _i < _n ; _i++ {
+		_talknew = TalkEval(_talknew_func[_i])
+		
+		_tnum = ARRAYSIZE(_talknew)
+		if _tnum >= 2 { //1行目は日付
+			
+			_idx = RE_ASEARCH("^\Q%(_talknew_func[_i])\E,",last_new_talk_id_array)
+			_date = "%(_talknew_func[_i]),%(_talknew[0])"
+			
+			if _idx >= 0 {
+				if last_new_talk_id_array[_idx] != _date {
+					last_new_talk_array ,= _talknew[1,_tnum-1]
+					last_new_talk_id_array[_idx] = _date
+					_changed = 1
+				}
+			}
+			else {
+				last_new_talk_array ,= _talknew[1,_tnum-1]
+				last_new_talk_id_array ,= _date
+				_changed = 1
+			}
+		}
+	}
+	
+	if _changed {
+		last_new_talk_array = UNIQUE(last_new_talk_array)
+	}
+	
+	_n = ARRAYSIZE(last_new_talk_array)
+	if _n >= 1 {
+		_rand = RAND(_n)
+		last_new_talk_array[_rand]
+		last_new_talk_array[_rand] = IARRAY
+		return
+	}
+	RandomTalkArray
+}
+
+RandomTalkArray
+{
+	_talk = IARRAY
+	_talknew = TalkEval('新規追加ランダムトーク')
+	_n = ARRAYSIZE(_talknew)
+	if _n >= 2 { //1行目は日付
+		_talk ,= _talknew[1,65535] //優先トークが終わったらまぜる
+	}
+	
+	//カスタム
+	_talk ,= TalkEval('ランダムトークカスタム')
+	
+	//季節その他
+	_earray = GetEvalTalkArray
+	_n = ARRAYSIZE(_earray)
+	for _i = 0 ; _i < _n ; _i++ {
+		_talknew = TalkEval('新規追加ランダムトーク' + _earray[_i])
+		_tnum = ARRAYSIZE(_talknew)
+		if _tnum >= 2 { //1行目は日付
+			_talk ,= _talknew[1,_tnum-1] //優先トークが終わったらまぜる
+		}
+		
+		_talk ,= TalkEval('ランダムトーク' + _earray[_i])
+	}
+
+	//そしてこれがふつう
+	_talk ,= TalkEval('ランダムトーク通常')
+	
+	_talk
+}
+
+RandomTalkEx : nonoverlap
+{
+	parallel RandomTalkArrayNewTalk
+}
+
+//***************************************************************************************************
+/*----------------------------------------------------------------------------------
+	ゴースト変更編
+----------------------------------------------------------------------------------*/
+
+/*===================================================================================
+記述方法
+
+関数名の例は以下の通りです。
+
+(名前)から変更
+(名前)へ変更
+(名前)を呼び出し
+(名前)を呼び出し完了
+(名前)から呼び出される
+(名前)が終了した
+
+(名前)の部分にはゴーストのSakura（メイン、\0）側名、またはフルネームが入ります。
+さくらや黒姉などSakura名だけで識別できない場合はフルネームを使ってください。
++や-、"や'など、AYAのシステムで使われる文字はすべて _ に置換されます。
+
+AYAの制限回避のため、数字ではじまるゴーストの名前の場合は、「＊（ゴースト名）」と書いてください。
+例：＊54を呼び出し
+
+記述例。
+スクリプトは " " でかこってください。
+
+Emilyへ変更
+{
+	"\u\s[10]\h\s[5]Emilyへ交代～。"
+}
+
+===================================================================================*/
+
+TranslateSystemChar
+{
+	SHIORI3FW.TranslateSystemChar(_argv[0],'_')
+}
+
+さくらスクリプト除去
+{
+	SHIORI3FW.RemoveAllTags(_argv[0])
+}
+
+さくらスクリプト無効化
+{
+	SHIORI3FW.EscapeAllTags(_argv[0])
+}
+
+GhostEventSearch
+{
+	_funcname = 関数名付加調整(_argv[0])
+	if ISFUNC(_funcname) {
+		_funcname
+		return
+	}
+	_funcname = 関数名付加調整('＊' + _argv[0])
+	if ISFUNC(_funcname) {
+		_funcname
+		return
+	}
+	''
+}
+
+CallChangeFuncWrapper
+{
+	_r0 = reference[0]
+	_r2 = reference[2]
+	
+	reference[0] = さくらスクリプト無効化(_r0)
+	reference[2] = さくらスクリプト無効化(_r2)
+	
+	TOSTR(EVAL(_argv[0]))
+	
+	reference[0] = _r0
+	reference[2] = _r2
+}
+
+CallChangeFunc
+{
+	//フルネームで探索
+	if reference[2] && STRLEN(TOSTR(reference[2])) {
+		_ghostname = TranslateSystemChar(reference[2])
+		_funcname = GhostEventSearch(_ghostname + _argv[0])
+		
+		if STRLEN(_funcname) {
+			_script = CallChangeFuncWrapper(_funcname)
+			if STRLEN(_script) {
+				_script
+				return
+			}
+		}
+	}
+
+	//Sakura名で探索
+	_ghostname = TranslateSystemChar(reference[0])
+	_funcname = GhostEventSearch(_ghostname + _argv[0])
+	
+	if STRLEN(_funcname) {
+		_script = CallChangeFuncWrapper(_funcname)
+		if STRLEN(_script) {
+			_script
+			return
+		}
+	}
+	
+	//ゴースト名変換
+	if ISFUNC('ゴースト名変換') {
+		_ghostname = EVAL('ゴースト名変換(TOSTR(reference[0]))')
+		_funcname = GhostEventSearch(_ghostname + _argv[0])
+		
+		if STRLEN(_funcname) {
+			_script = CallChangeFuncWrapper(_funcname)
+			if STRLEN(_script) {
+				_script
+				return
+			}
+		}
+	}
+	
+	//自分かどうか
+	if TOINT(_argv[1]) == 0 {
+		if reference[0] == selfname {
+			_funcname = GhostEventSearch('自分' + _argv[0])
+			
+			if STRLEN(_funcname) {
+				_script = CallChangeFuncWrapper(_funcname)
+				if STRLEN(_script) {
+					_script
+					return
+				}
+			}
+		}
+		
+		//汎用切り替え
+		_funcname = 関数名付加調整('その他' + _argv[0])
+		if ISFUNC(_funcname) {
+			_script = CallChangeFuncWrapper(_funcname)
+			if STRLEN(_script) {
+				_script
+				return
+			}
+		}
+		
+		_funcname = 関数名付加調整('他のゴースト' + _argv[0])
+		if ISFUNC(_funcname) {
+			_script = CallChangeFuncWrapper(_funcname)
+			if STRLEN(_script) {
+				_script
+				return
+			}
+		}
+	}
+
+}
+
+CallChangeFuncLastCatch
+{
+	REPLACE(CallChangeFuncWrapper(関数名付加調整(_argv[0])),'\-','')
+}
+
+AYL_OnGhostChanging
+{
+	GetCloseSharedScript
+	--
+	_boot = SpecialBootCloseTalk('終了')
+	if STRLEN(_boot) {
+		_boot
+		return
+	}
+	
+	_script = CallChangeFunc('へ変更')
+	
+	if STRLEN(_script) == 0 {
+		_script = CallChangeFuncLastCatch('OnClose')
+	}
+	
+	_script = REPLACE(_script,'\e','')
+	if AYALilithEX {
+		_script = _script + C_CRLF + "\w9\w9\e"
+	}
+	else {
+		_script = _script + "\w9\w9\e"
+	}
+	_script
+	
+}
+
+AYL_OnGhostChanged
+{
+	_boot = SpecialBootCloseTalk('起動')
+	if STRLEN(_boot) {
+		_boot
+		return
+	}
+	
+	タグなしトーク = さくらスクリプト除去(reference[1])
+	
+	_script = GetBootSharedScript + CallChangeFunc('から変更')
+	
+	if STRLEN(_script) == 0 {
+		_script = CallChangeFuncLastCatch('OnBoot')
+	}
+	
+	_script
+}
+
+AYL_OnGhostCalling
+{
+	_script = CallChangeFunc('を呼び出し')
+	
+	if TOINT(EVAL('呼び出し反応に切り替え反応を流用')) {
+		_script = CallChangeFunc('へ変更',1)
+	}
+	
+	_script
+}
+
+AYL_OnGhostCalled
+{
+	_boot = SpecialBootCloseTalk('起動')
+	if STRLEN(_boot) {
+		_boot
+		return
+	}
+	
+	タグなしトーク = さくらスクリプト除去(reference[1])
+
+	_script = GetBootSharedScript + CallChangeFunc('から呼び出される')
+	
+	if TOINT(EVAL('呼び出し反応に切り替え反応を流用')) {
+		_script = GetBootSharedScript + CallChangeFunc('から変更',1)
+	}
+	
+	if STRLEN(_script) == 0 {
+		_script = CallChangeFuncLastCatch('OnBoot')
+	}
+	
+	_script
+}
+
+AYL_OnGhostCallComplete
+{
+	タグなしトーク = さくらスクリプト除去(reference[1])
+
+	CallChangeFunc('を呼び出し完了')
+}
+
+AYL_OnOtherGhostClosed
+{
+	CallChangeFunc('が終了した')
+}
+
+AYL_OnShellChanging
+{
+	_r0 = reference[0]
+	reference[0] = さくらスクリプト無効化(_r0)
+	
+	_script = ''
+	if _r0 == SHIORI3FW.ShellName {
+		_funcname = 関数名付加調整('シェル再読み込み前')
+		if ISFUNC(_funcname) {
+			_script = TOSTR(EVAL(_funcname))
+		}
+	}
+	else {
+		_funcname = 関数名付加調整('シェル' + reference[0] + '変更前')
+		if ISFUNC(_funcname) {
+			_script = TOSTR(EVAL(_funcname))
+		}
+		else {
+			_funcname = 関数名付加調整('シェル変更前')
+			if ISFUNC(_funcname) {
+				_script = TOSTR(EVAL(_funcname))
+			}
+		}
+	}
+	
+	if _script != '' {
+		if AYALilithEX {
+			_script = _script + C_CRLF + "\w9\w9\e"
+		}
+		else {
+			_script = _script + "\w9\w9\e"
+		}
+	}
+	_script
+	
+	reference[0] = _r0
+}
+
+AYL_OnShellChanged
+{
+	_r0 = reference[0]
+	reference[0] = さくらスクリプト無効化(_r0)
+	
+	if SHIORI3FW.ShellName == SHIORI3FW.ShellNameOld {
+		_funcname = 関数名付加調整('シェル再読み込み後')
+		if ISFUNC(_funcname) {
+			TOSTR(EVAL(_funcname))
+		}
+	}
+	else {
+		_funcname = 関数名付加調整('シェル' + reference[0] + '変更後')
+		if ISFUNC(_funcname) {
+			TOSTR(EVAL(_funcname))
+		}
+		else {
+			_funcname = 関数名付加調整('シェル変更後')
+			if ISFUNC(_funcname) {
+				TOSTR(EVAL(_funcname))
+			}
+		}
+	}
+	
+	reference[0] = _r0
+}
+
+AYL_OnBalloonChange
+{
+	_r0 = reference[0]
+	reference[0] = さくらスクリプト無効化(_r0)
+	
+	if SHIORI3FW.BalloonName == SHIORI3FW.BalloonNameOld {
+		_funcname = 関数名付加調整('バルーン再読み込み')
+		if ISFUNC(_funcname) {
+			TOSTR(EVAL(_funcname))
+		}
+	}
+	else {
+		_funcname = 関数名付加調整('バルーン' + reference[0] + '変更')
+		if ISFUNC(_funcname) {
+			TOSTR(EVAL(_funcname))
+		}
+		else {
+			_funcname = 関数名付加調整('バルーン変更')
+			if ISFUNC(_funcname) {
+				TOSTR(EVAL(_funcname))
+			}
+		}
+	}
+}
+
+//***************************************************************************************************
+/*----------------------------------------------------------------------------------
+	起動編
+----------------------------------------------------------------------------------*/
+
+/*=====かきかたの例==================================================================
+春の朝に起動 : array
+{
+	"ごにょごにょ"
+}
+
+1.かならず最後に : array とつけること
+2.' 'でトークをかこむこと
+
+3.AYAの制限上、「7月5日に起動」というふうな数字ではじまる関数はつくれないので
+  こういう場合は「起動7月5日」と書くこと
+===================================================================================*/
+
+SpecialBootCloseTalk
+{
+	DelayedTalkEval(SpecialBootCloseTalkExec(_argv[0]))
+}
+
+SpecialBootCloseTalkExec
+{
+	_date = GETTIME[0] + '/' + GETTIME[1] + '/' + GETTIME[2]
+
+	if ISVAR("特殊%(_argv[0])トーク配列") == 0 {
+		void EVAL("特殊%(_argv[0])トーク配列 = IARRAY")
+	}
+	
+	_talk = (SpecialBootCloseTalkExecArray(_argv[0]),IARRAY)
+	_talk_size = ARRAYSIZE(_talk)
+	
+	if (_date != EVAL("特殊%(_argv[0])トーク実行日時")) || (_talk_size != EVAL("特殊%(_argv[0])トーク配列数")) {
+		void EVAL("特殊%(_argv[0])トーク配列 = _talk")
+		void EVAL("特殊%(_argv[0])トーク実行日時 = _date")
+		void EVAL("特殊%(_argv[0])トーク配列数 = _talk_size")
+	}
+	
+	_talk_x = EVAL("特殊%(_argv[0])トーク配列")
+	_n = ARRAYSIZE(_talk_x)
+	if _n {
+		_rand = RAND(_n)
+		_script = _talk_x[_rand]
+		void EVAL("特殊%(_argv[0])トーク配列[_rand] = IARRAY")
+		_script
+		return
+	}
+	''
+	return
+}
+
+SpecialBootCloseTalkExecArray
+{
+	//特殊な日付トーク
+	_earray = GetEvalTalkArray(1)
+	_n = ARRAYSIZE(_earray)
+	_talk = IARRAY
+	
+	for _i = 0 ; _i < _n ; _i++ {
+		_talk_e = TalkEval(_argv[0] + _earray[_i])
+		if ARRAYSIZE(_talk_e) {
+			_talk ,= _talk_e
+		}
+	}
+	
+	_talk
+	return
+}
+
+AYL_OnBoot
+{
+	GetBootSharedScript
+	--
+	//高速処理用
+	DelayedTalkEval(BootCloseEx('起動'))
+}
+
+AYL_OnFirstBoot
+{
+	GetBootSharedScript
+	--
+	//高速処理用
+	if TOINT(reference[0]) != 0 {
+		_r = DelayedTalkEval(BootCloseEx('Vanish後初回起動'))
+		if _r == '' {
+			_r = DelayedTalkEval(BootCloseEx('初回起動'))
+		}
+		_r
+	}
+	else {
+		DelayedTalkEval(BootCloseEx('初回起動'))
+	}
+}
+
+BootCloseEx
+{
+	_talk = IARRAY
+	
+	//特殊な日付トーク
+	_result = SpecialBootCloseTalkExec(_argv[0])
+	if STRLEN(_result) {
+		_result
+		return
+	}
+	
+	//カスタム
+	_talk = IARRAY
+	_talk ,= TalkEval(_argv[0] + 'カスタム')
+	
+	//季節その他
+	_earray = GetEvalTalkArray(0)
+	_n = ARRAYSIZE(_earray)
+	for _i = 0 ; _i < _n ; _i++ {
+		if RE_SEARCH(_earray[_i],'^\d') == 0 {
+			_talk ,= TalkEval(_earray[_i] + 'に' + _argv[0])
+		}
+		_talk ,= TalkEval(_argv[0] + _earray[_i])
+	}
+
+	//そしてこれがふつう
+	//時間帯別がないときのみ追加
+	if ARRAYSIZE(_talk) == 0 {
+		_talk ,= TalkEval(_argv[0])
+	}
+
+	parallel _talk
+}
+
+/*----------------------------------------------------------------------------------
+	終了編
+	書き方の例は起動編といっしょ（ただし「～に終了」になります）
+----------------------------------------------------------------------------------*/
+
+AYL_OnClose
+{
+	GetCloseSharedScript
+	--
+	_script = BootCloseEx('終了')
+	if ! 終了しない {
+		_script = REPLACE(_script,'\e','')
+		_script = REPLACE(_script,'\-','')
+		_script += '\w9\-'
+	}
+	
+	//高速処理用
+	DelayedTalkEval(_script)
+}
+
+
+//***************************************************************************************************
+/*----------------------------------------------------------------------------------
+	マウス反応編
+----------------------------------------------------------------------------------*/
+
+MouseEventTimeReset
+{
+	最終マウスイベント分 = systemuptime / 1000
+}
+
+//---- OnMouseMoveイベント --------------------------------------------------------------
+MouseEventExecSub
+{
+	_fname = スコープ変換調整(_argv[0] + '%(_scope)' + _argv[1],reference[3])
+	if STRLEN(_fname) {
+		EVAL(_fname)
+		return
+	}
+	
+	_fname = スコープ変換調整(_argv[0] + '%(_scope)',reference[3])
+	if STRLEN(_fname) {
+		EVAL(_fname)
+		return
+	}
+	
+	-1
+}
+
+MouseEventExecFromEventName
+{
+	if 'クリック' == _argv[0] {
+		0
+		return
+	}
+	if 'ダブルクリック' == _argv[0] {
+		0
+		return
+	}
+	if '多重クリック' == _argv[0] {
+		0
+		return
+	}
+	if 'ころころ' _in_ _argv[0] {
+		1
+		return
+	}
+	if 'なでなで' _in_ _argv[0] {
+		-1
+		return
+	}
+	if 'ドラッグ' _in_ _argv[0] {
+		-1
+		return
+	}
+	if 'ホールド' _in_ _argv[0] {
+		-1
+		return
+	}
+	-1
+	return
+}
+
+MouseEventExec
+{
+	マウスイベントキャラID = TOINT(reference[3])
+	
+	_fname = ''
+	
+	_m = TOINT(reference[5])
+	
+	_head = ''
+	if _m == 1 {
+		_head = '右' + _argv[0]
+	}
+	elseif _m == 2 {
+		_head = '中' + _argv[0]
+	}
+	else {
+		_head = _argv[0]
+	}
+	
+	_colname = reference[4]
+	if _argc >= 2 {
+		_colname = _argv[1]
+	}
+	
+	_col_id = MouseEventExecFromEventName(_head)
+	if _col_id >= 0 {
+		_col_id += TOINT(reference[3])*10
+		if ((GETTICKCOUNT() - mouseevent_time[_col_id]) < 3000) && (mouseevent_colname[_col_id] == _colname) {
+			mouseevent_count[_col_id] += 1
+		}
+		else {
+			mouseevent_colname[_col_id] = _colname
+			mouseevent_count[_col_id] = 1
+		}
+	}
+	
+	マウスイベント連続回数 = mouseevent_count[_col_id]
+	mouseevent_time[_col_id] = GETTICKCOUNT()
+
+	_result = -1
+	if 'talking' _in_ status {
+		_result = MouseEventExecSub('トーク中' + _head,_colname)
+	}
+	if _result == -1 {
+		_result = MouseEventExecSub(_head,_colname)
+	}
+
+	if _result != -1 {
+		MouseEventTimeReset()
+		SHIORI3FW.ResetAITalkInterval()
+		_result
+		return
+	}
+}
+
+MouseMoveWheelFunc
+{
+	_side = TOINT(reference[3])
+	if _argv[0] {
+		_side += 10
+	}
+	
+	if strokeid[_side] == reference[4] {
+		if (GETTICKCOUNT - TOINT(stroketimer[_side])) > 1500 {
+			stroke[_side] = 1
+		}
+		stroketimer[_side] = GETTICKCOUNT
+		
+		_stroke = TOINT(stroke[_side])
+		_stroke += 1
+		stroke[_side] = _stroke
+		
+		if _stroke >= _argv[1] {
+			if 'talking' !_in_ status {
+				_s = MouseEventExec(_argv[2])
+				if STRLEN(_s) == 0 {
+					if _argc >= 4 {
+						_s = MouseEventExec(_argv[3])
+					}
+				}
+				_s
+				stroke[_side] = 1
+			}
+		}
+	}
+	else {
+		stroke[_side] = 1
+		stroketimer[_side] = GETTICKCOUNT
+		strokeid[_side] = reference[4]
+	}
+}
+
+AYL_OnMouseMove
+{
+	if ISFUNC('あやりりす・マウスなで感度') {
+		MouseMoveWheelFunc(0,あやりりす・マウスなで感度,'なでなで')
+	}
+	else {
+		MouseMoveWheelFunc(0,40,'なでなで')
+	}
+}
+
+AYL_OnMouseWheel
+{
+	_script = ''
+	_sensitivity = 4
+	if ISFUNC('あやりりす・マウスホイール感度') {
+		_sensitivity = あやりりす・マウスホイール感度
+	}
+	
+	if reference[2] > 0 {
+		_script = MouseMoveWheelFunc(1,_sensitivity,'ころころ上','ころころ')
+	}
+	else {
+		_script = MouseMoveWheelFunc(1,_sensitivity,'ころころ下','ころころ')
+	}
+	
+	if STRLEN(_script) {
+		_script
+		return
+	}
+	
+}
+
+AYL_OnMouseClick
+{
+	クリック連続回数 = 1
+	MouseEventExec('クリック')
+}
+AYL_OnMouseClickEx
+{
+	クリック連続回数 = 1
+	MouseEventExec('クリック')
+}
+
+AYL_OnMouseDoubleClick
+{
+	クリック連続回数 = 2
+	MouseEventExec('ダブルクリック')
+}
+AYL_OnMouseDoubleClickEx
+{
+	クリック連続回数 = 2
+	MouseEventExec('ダブルクリック')
+}
+
+AYL_OnMouseMultipleClick
+{
+	クリック連続回数 = TOINT(reference[7])
+	MouseEventExec('多重クリック')
+}
+AYL_OnMouseMultipleClickEx
+{
+	クリック連続回数 = TOINT(reference[7])
+	MouseEventExec('多重クリック')
+}
+
+AYL_OnMouseHover
+{
+	クリック連続回数 = 1
+	MouseEventExec('マウスホバー')
+}
+
+AYL_OnMouseDragStart
+{
+	//ホールド解除
+	if mousedown_exec_complete == 0 {
+		mousedown_reference_array = IARRAY
+		mousedown_time = -1
+	}
+
+	AYL_drag_start_col = reference[4]
+	MouseEventExec('ドラッグ開始',AYL_drag_start_col)
+}
+
+AYL_MouseHoldEndExec
+{
+	if 'talking' _in_ status {
+		SHIORI3FW.SetDelayEvent('OnAYLMouseHoldEndExecDelay',2)
+	}
+	else {
+		OnAYLMouseHoldEndExecDelay()
+	}
+}
+
+OnAYLMouseHoldEndExecDelay
+{
+	reference = mousedown_reference_array
+	MouseEventExec('ホールド終了')
+	
+	//ホールド解除
+	mousedown_reference_array = IARRAY
+	mousedown_time = -1
+	mousedown_exec_complete = 0
+}
+
+AYL_OnMouseDragEnd
+{
+	if mousedown_exec_complete {
+		AYL_MouseHoldEndExec()
+	}
+	else {
+		MouseEventExec('ドラッグ終了',AYL_drag_start_col)
+	}
+	void ERASEVAR('AYL_drag_start_col')
+}
+
+AYL_OnMouseDown
+{
+	if TOINT(reference[5]) == 0 {
+		//ホールド計測開始
+		mousedown_reference_array = reference
+		mousedown_time = GETTICKCOUNT()
+		mousedown_exec_complete = 0
+	}
+}
+
+AYL_OnMouseUp
+{
+	if mousedown_exec_complete {
+		AYL_MouseHoldEndExec()
+	}
+	else {
+		//ホールド解除
+		mousedown_reference_array = IARRAY
+		mousedown_time = -1
+	}
+}
+
+AYL_OnMouseGesture
+{
+	_name = ''
+	_is_end = 0
+	
+	case reference[5] {
+		when 'right_up' { _name = '右上'; }
+		when 'up' { _name = '上'; }
+		when 'left_up' { _name = '左上'; }
+		when 'left' { _name = '左'; }
+		when 'left_down' { _name = '左下'; }
+		when 'down' { _name = '下'; }
+		when 'right_down' { _name = '右下'; }
+		when 'right' { _name = '右'; }
+		when 'circle.cw' { _name = '時計回り'; }
+		when 'circle.ccw' { _name = '反時計回り'; }
+		when 'end' {
+			_is_end = 1
+			_name = '終了'
+		}
+	}
+	
+	_postfix = ''
+	_garray = IARRAY
+	_is_start = 0
+	
+	if _is_end {
+		ERASEVAR('gesture_name_array')
+		ERASEVAR('gesture_circle_array')
+		ERASEVAR('gesture_init')
+		ERASEVAR('gesture_wheel_event_raised')
+	}
+	else {
+		if ISVAR('gesture_init') == 0 {
+			gesture_init = 1
+			gesture_wheel_event_raised = ''
+			_is_start = 1
+		}
+		if '回り' _in_ _name {
+			if ISVAR('gesture_circle_array') == 0 {
+				gesture_circle_array = IARRAY
+			}
+			gesture_circle_array ,= _name
+			_postfix = '回転'
+			_garray = gesture_circle_array
+		}
+		else {
+			if ISVAR('gesture_name_array') == 0 {
+				gesture_name_array = IARRAY
+			}
+			gesture_name_array ,= _name
+			_garray = gesture_name_array
+		}
+	}
+	
+	if _is_end {
+		_fname = "マウスジェスチャー%(reference[0])%(reference[4])終了"
+		_fname = 関数名付加調整(_fname)
+		if ISFUNC(_fname) {
+			EVAL(_fname)
+			MouseEventTimeReset
+			return
+		}
+		
+		_fname = "マウスジェスチャー%(reference[0])終了"
+		_fname = 関数名付加調整(_fname)
+		if ISFUNC(_fname) {
+			EVAL(_fname)
+			MouseEventTimeReset
+			return
+		}
+	}
+	else {
+		if _is_start {
+			_fname = "マウスジェスチャー%(reference[0])%(reference[4])開始"
+			_fname = 関数名付加調整(_fname)
+			if ISFUNC(_fname) {
+				EVAL(_fname)
+				MouseEventTimeReset
+			}
+			else {
+				_fname = "マウスジェスチャー%(reference[0])開始"
+				_fname = 関数名付加調整(_fname)
+				if ISFUNC(_fname) {
+					EVAL(_fname)
+					MouseEventTimeReset
+				}
+			}
+		}
+		
+		_fname = "マウスジェスチャー%(_postfix)%(reference[0])%(reference[4])%(JOIN(_garray,'・'))"
+		_fname = 関数名付加調整(_fname)
+		if ISFUNC(_fname) {
+			EVAL(_fname)
+			MouseEventTimeReset
+			return
+		}
+		
+		_fname = "マウスジェスチャー%(_postfix)%(reference[0])%(reference[4])単発%(_name)"
+		_fname = 関数名付加調整(_fname)
+		if ISFUNC(_fname) {
+			EVAL(_fname + '(_garray)')
+			MouseEventTimeReset
+			return
+		}
+		
+		_fname = "マウスジェスチャー%(_postfix)%(reference[0])%(reference[4])"
+		_fname = 関数名付加調整(_fname)
+		if ISFUNC(_fname) {
+			EVAL(_fname + '(_garray)')
+			MouseEventTimeReset
+			return
+		}
+		
+		_fname = "マウスジェスチャー%(_postfix)%(reference[0])%(JOIN(_garray,'・'))"
+		_fname = 関数名付加調整(_fname)
+		if ISFUNC(_fname) {
+			EVAL(_fname)
+			MouseEventTimeReset
+			return
+		}
+		
+		_fname = "マウスジェスチャー%(_postfix)%(reference[0])単発%(_name)"
+		_fname = 関数名付加調整(_fname)
+		if ISFUNC(_fname) {
+			EVAL(_fname)
+			MouseEventTimeReset
+			return
+		}
+		
+		_fname = "マウスジェスチャー%(_postfix)%(reference[0])"
+		_fname = 関数名付加調整(_fname)
+		if ISFUNC(_fname) {
+			EVAL(_fname + '(_garray)')
+			MouseEventTimeReset
+			return
+		}
+		
+		if TOINT(EVAL('マウスジェスチャーにホイール反応を流用')) {
+			if '上' _in_ _name || '下' _in_ _name {
+				if '上' _in_ _name {
+					_name = '上'
+				}
+				elseif '下' _in_ _name {
+					_name = '下'
+				}
+				
+				if _name !_in_ gesture_wheel_event_raised {
+					reference[3] = reference[0]
+					
+					_xy = SPLIT(referece[1],C_BYTE1)
+					reference[0] = _xy[0]
+					reference[1] = _xy[1]
+					
+					_script = ''
+					if _name == '上' {
+						reference[2] = '20'
+						_script = MouseEventExec('ころころ上')
+					}
+					else {
+						reference[2] = '-20'
+						_script = MouseEventExec('ころころ下')
+					}
+					if STRLEN(_script) == 0 {
+						_script = MouseEventExec('ころころ')
+					}
+					if STRLEN(_script) {
+						_script
+						gesture_wheel_event_raised += _name
+						return
+					}
+				}
+			}
+		}
+	}
+}
+
+//***************************************************************************************************
+/*----------------------------------------------------------------------------------
+	プラグイン
+----------------------------------------------------------------------------------*/
+
+AYL_On_installedplugin : void
+{
+	_n = ARRAYSIZE(reference)
+	installedplugin_name = IARRAY
+	installedplugin_id = IARRAY
+	
+	for _i = 0 ; _i < _n ; _i++ {
+		_a = SPLIT(reference[_i],C_BYTE1)
+		
+		installedplugin_name ,= _a[0]
+		installedplugin_id ,= _a[1]
+	}
+	
+	if ISFUNC('On_installedplugin') {
+		void EVAL('On_installedplugin')
+	}
+}
+
+プラグインの存在
+{
+	if _argc == 0 {
+		0
+		return
+	}
+	
+	if ASEARCH(_argv[0],installedplugin_id) >= 0 {
+		1
+		return
+	}
+	if ASEARCH(_argv[0],installedplugin_name) >= 0 {
+		1
+		return
+	}
+	0
+}
+
+/*----------------------------------------------------------------------------------
+	通知
+----------------------------------------------------------------------------------*/
+情報_ゴースト名 {
+	さくらスクリプト無効化(SHIORI3FW.GhostName)
+}
+情報_キャラ名 {
+	_inf = (さくらスクリプト無効化(sakuraname),さくらスクリプト無効化(keroname))
+	_inf
+}
+情報_シェル名 {
+	さくらスクリプト無効化(SHIORI3FW.ShellName)
+}
+情報_バルーン名 {
+	さくらスクリプト無効化(SHIORI3FW.BalloonName)
+}
+情報_ユーザー名 {
+	さくらスクリプト無効化(SHIORI3FW.UserName)
+}
+情報_ユーザー誕生日 {
+	SHIORI3FW.UserBirthday
+}
+
+AYL_OnNotifyUserInfo : void
+{
+	if username == '' {
+		if 情報_ユーザー名 == '' {
+			username = 名前入力初期
+		}
+		else {
+			username = 情報_ユーザー名
+		}
+	}
+
+	if ISFUNC('SHIORI3EV.OnNotifyUserInfo') {
+		void EVAL('SHIORI3EV.OnNotifyUserInfo')
+	}
+	if ISFUNC('OnNotifyUserInfo') {
+		void EVAL('OnNotifyUserInfo')
+	}
+	
+	AYL_DateInit()
+}
+
+AYL_OnDisplayChange : void
+{
+	//---- 変数にディスプレイ解像度と色深度に関する情報を取得
+	//---- 使うかどうかは分からないがとりあえず保持しておく
+	情報_モニタ色数 = reference[0]
+	情報_モニタ幅   = reference[1]
+	情報_モニタ高さ = reference[2]
+	
+	if ISFUNC('SHIORI3EV.OnDisplayChange') {
+		void EVAL('SHIORI3EV.OnDisplayChange')
+	}
+	if ISFUNC('OnDisplayChange') {
+		void EVAL('OnDisplayChange')
+	}
+}
+
+/*----------------------------------------------------------------------------------
+	リンクメニュー
+----------------------------------------------------------------------------------*/
+
+あやりりす_LinkMenuConvert
+{
+	_argc_copy = _argc
+	_argv_copy = _argv
+	
+	if _argc_copy == 1 { //改行つきテキスト
+		_argv_copy = SPLIT(_argv_copy[0],C_CRLF)
+		if GETTYPE(_argv_copy) != 4 { //本当にひとつだけだった！
+			_argv_copy = _argv
+		}
+		else {
+			_argc_copy = ARRAYSIZE(_argv_copy)
+		}
+	}
+	
+	_text = ''
+	_data = IARRAY
+	for _i = 0 ; _i < _argc_copy ; _i++ {
+	   _data = (RE_SPLIT(_argv_copy[_i],'[ \t]*\|[ \t]*'),'','') //ダミー
+	   _text += "%(_data[0])%(C_BYTE1)%(_data[1])%(C_BYTE1)%(_data[2])%(C_BYTE1)%(CHR(2))"
+	}
+	_text;
+}
+
+//---- 本体側ポータルサイトのリスト -----------------------------------------------------
+AYL_On_sakura.portalsites
+{
+	あやりりす_LinkMenuConvert(ポータルサイト())
+}
+
+//---- 本体側おすすめサイトのリスト -----------------------------------------------------
+AYL_On_sakura.recommendsites
+{
+	あやりりす_LinkMenuConvert(おすすめ0())
+}
+
+//---- kero側おすすめサイトのリスト -----------------------------------------------------
+AYL_On_kero.recommendsites
+{
+	あやりりす_LinkMenuConvert(おすすめ1())
+}
+
+AYL_OnRecommendsiteChoice
+{
+	_sitename = TranslateSystemChar(reference[0])
+	
+	if reference[3] == 'recommend' {
+		if TOINT(reference[4]) > 0 {
+			_fname = 'おすすめ' + TOINT(reference[4]) + _sitename
+			if ISFUNC(_fname) {
+				EVAL(_fname)
+				return
+			}
+		}
+		else {
+			_fname = 'おすすめ0' + _sitename
+			if ISFUNC(_fname) {
+				EVAL(_fname)
+				return
+			}
+		}
+	}
+	elseif reference[3] == 'portal' {
+		_fname = 'ポータルサイト' + _sitename
+		if ISFUNC(_fname) {
+			EVAL(_fname)
+			return
+		}
+	}
+	else {
+		_fname = 'おすすめ0' + _sitename
+		if ISFUNC(_fname) {
+			EVAL(_fname)
+			return
+		}
+		_fname = 'おすすめ1' + _sitename
+		if ISFUNC(_fname) {
+			EVAL(_fname)
+			return
+		}
+		_fname = 'ポータルサイト' + _sitename
+		if ISFUNC(_fname) {
+			EVAL(_fname)
+			return
+		}
+	}
+}
+
+//**** ツールチップ *****************************************************************
+AYL_On_tooltip
+{
+	_r3 = TOINT(reference[3])
+	
+	_f = 関数名付加調整('シェルツールチップ' + TOSTR(_r3) + reference[4],_r3)
+	if ISFUNC(_f) {
+		EVAL(_f)
+	}
+	
+	_f = 関数名付加調整('On_tooltip',_r3)
+	if ISFUNC(_f) {
+		EVAL(_f)
+	}
+}
+
+AYL_On_balloon_tooltip
+{
+	reference[0] = RE_REPLACE(reference[0],'[ 　]+$','')
+	_f = 'バルーンツールチップ' + reference[1]
+	if ISFUNC(_f) {
+		_v = EVAL(_f)
+		if STRLEN(_v) {
+			_v
+			return
+		}
+	}
+	
+	if RE_SEARCH(reference[1],'^(http|https)://') {
+		'[ブラウザでURLを開く]\n' + reference[1]
+		return
+	}
+	
+	if ISFUNC('On_balloon_tooltip') {
+		EVAL('On_balloon_tooltip')
+	}
+}
+
+/*----------------------------------------------------------------------------------
+	連続起動時間
+----------------------------------------------------------------------------------*/
+ゴースト起動時間
+{
+	ghostupmin_total()
+}
+
+
+//***************************************************************************************************
+/*----------------------------------------------------------------------------------
+	名前入力補助
+----------------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------------
+	名前入力起動('識別子')　で入力ボックス開く
+	
+	要実装関数名
+	＊は識別子
+	
+	名前入力敬称　：敬称をテキストで返して下さい
+	名前入力開く＊：インプットボックスを開く時のスクリプト
+	名前入力空欄＊：空欄でエンターされた
+	名前入力敬称＊：敬称つけて入力された
+	名前入力終了＊：正常終了
+----------------------------------------------------------------------------------*/
+
+AYL_AppendToScriptTail
+{
+	_script = _argv[0]
+	_append = _argv[1]
+	
+	if STRSTR(_script,'\e',0) >= 0 { //\eあり
+		REPLACE(_script,'\e',_append + '\e',1)
+	}
+	elseif STRSTR(_script,C_CRLF,0) >= 0 { //あやりりす
+		_script + C_CRLF + '＠スクリプト：' + _append
+	}
+	else {
+		_script + _append
+	}
+}
+
+名前入力起動
+{
+	名前入力識別 = _argv[0]
+	名前入力空欄カウント = 0
+	
+	_script = EVAL("名前入力開く%(名前入力識別)")
+	_append = "\![open,inputbox,OnInputNameInXTNDAYL,0,%(エスケープ(敬称削除(username)))]"
+	
+	_script = AYL_AppendToScriptTail(_script,_append)
+	_script
+}
+
+敬称削除
+{
+	if _argv[0] == '' {
+		''
+	}
+	else {
+		RE_REPLACE(_argv[0],'(さん|くん|ちゃん|たん|様|さま|殿)$','')
+	}
+}
+敬称探索
+{
+	if _argv[0] == '' {
+		0
+	}
+	else {
+		RE_GREP(_argv[0],'(さん|くん|ちゃん|たん|様|さま|殿)$')
+	}
+}
+名前入力敬称WRAP
+{
+	if ISFUNC('名前入力敬称') {
+		名前入力敬称
+	}
+	else {
+		'さん'
+	}
+}
+名前入力初期WRAP
+{
+	if ISFUNC('名前入力初期') {
+		名前入力初期
+	}
+	elseif SHIORI3FW.UserName != '' {
+		SHIORI3FW.UserName
+	}
+	else {
+		'ユーザ'
+	}
+}
+名前入力初期名称判定
+{
+	if username == 名前入力初期WRAP() {
+		1
+	}
+	else {
+		0
+	}
+}
+名前入力閉じる
+{
+	'\![close,inputbox,OnInputNameInXTNDAYL]'
+}
+
+OnInputNameInXTNDAYL
+{
+	if 敬称削除(reference[0]) == '' {
+		_open_input = 1
+		_script = ''
+		
+		名前入力空欄カウント += 1
+		if 名前入力空欄カウント <= 1 {
+			_script = EVAL("名前入力空欄%(名前入力識別)")
+		}
+		else {
+			_script = EVAL("名前入力空欄繰り返し%(名前入力識別)")
+			if _script == '' {
+				_script = EVAL("名前入力空欄%(名前入力識別)")
+			}
+			else {
+				_open_input = 0
+			}
+		}
+		
+		if _open_input {
+			_append = "\![open,inputbox,OnInputNameInXTNDAYL,0,%(エスケープ(敬称削除(username)))]"
+			_script = AYL_AppendToScriptTail(_script,_append)
+		}
+		else {
+			username = 名前入力初期WRAP()
+		}
+		
+		_script
+		return
+	}
+	
+	_kflag = 0
+	if ( 敬称探索(reference[0]) ) {
+		if ( 敬称削除(reference[0]) + 名前入力敬称WRAP() ) == reference[0] {
+			reference[0] = 敬称削除(reference[0])
+		}
+		else {
+			_kflag = 1
+		}
+	}
+	
+	username_saved = さくらスクリプト無効化(reference[0])
+	username_new = 敬称削除(username_saved) + 名前入力敬称WRAP()
+	
+	if username_saved == 名前入力初期WRAP() {
+		OnInputNameSpecialXTNDAYL
+		return
+	}
+	
+	if _kflag {
+		_script = EVAL("名前入力敬称%(名前入力識別)")
+		
+		_append = ''
+		_append += '\0\n\n[half]'
+		_append += メニュー("%(username_saved) と呼んでほしい",'OnInputNameSpecialXTNDAYL')
+		_append += '\n'
+		_append += メニュー("%(username_new) と呼んでほしい",'OnInputNameEndXTNDAYL')
+		
+		_script = AYL_AppendToScriptTail(_script,_append)
+		
+		_script
+		return
+	}
+	
+	OnInputNameEndXTNDAYL
+}
+
+InputNameSharedXTNDAYL
+{
+	_script = EVAL("名前入力終了%(名前入力識別)")
+	_script
+	
+	void ERASEVAR('username_saved','username_new')
+	void ERASEVAR('名前入力識別','名前入力空欄カウント')
+}
+
+OnInputNameSpecialXTNDAYL
+{
+	username = username_saved
+	InputNameSharedXTNDAYL()
+}
+
+OnInputNameEndXTNDAYL
+{
+	username = username_new	
+	InputNameSharedXTNDAYL()
+}
+
+//*****************************************************
+// 着せ替え基本データ取得
+//*****************************************************
+
+AYL_OnNotifyDressupInfo : void
+{
+	着せ替え有効パーツリスト = IARRAY
+	着せ替え有効パーツリストEX = IARRAY
+	着せ替え有効カテゴリリスト = IARRAY
+	着せ替え有効カテゴリリストEX = IARRAY
+
+	着せ替え情報 = reference.raw
+	
+	_c1 = C_BYTE1
+	_n = ARRAYSIZE(reference.raw)
+	
+	//キャラクターID [1] カテゴリー名 [1] パーツ名 [1] オプション [1] 有効1/無効0 [1] サムネイルパス
+	for _i = 0 ; _i < _n ; _i++ {
+		_v = SPLIT(reference.raw[_i],_c1)
+		
+		if TOINT(_v[4]) != 0 {
+			_p2 = _v[2]
+			_p = '着せ替えパーツ' + TranslateSystemChar(_p2)
+			_c2 = _v[1]
+			_c = '着せ替えカテゴリ' + TranslateSystemChar(_c2)
+			
+			if ASEARCH(_p,着せ替え有効パーツリストEX) < 0 {
+				着せ替え有効パーツリスト ,= _p2
+				着せ替え有効パーツリストEX ,= _p
+			}
+			if ASEARCH(_c,着せ替え有効カテゴリリストEX) < 0 {
+				着せ替え有効カテゴリリスト ,= _c2
+				着せ替え有効カテゴリリストEX ,= _c
+			}
+		}
+	}
+	
+	if ISFUNC('OnNotifyDressupInfo') {
+		void EVAL('OnNotifyDressupInfo')
+	}
+}
+
+//*****************************************************
+// コミュ
+//*****************************************************
+
+//------------------------------------------------------------------------------
+// こっちから話しかける
+//------------------------------------------------------------------------------
+他に話しかける
+{
+	//まず話しかける相手を決める
+	_ghostname = AYF_GetRandomSakuraName()
+	
+	if STRLEN(_ghostname) == 0 {
+		if ISFUNC('話しかけられない') {
+			EVAL('話しかけられない')
+		}
+		return
+	}
+	
+	res_reference0 = _ghostname
+	
+	//関数呼び出し
+	_fname = '＊' + TranslateSystemChar(_ghostname) + 'に話しかける'
+	if ISFUNC(_fname) {
+		EVAL(_fname)
+		return
+	}
+	
+	_fname = TranslateSystemChar(_ghostname) + 'に話しかける'
+	if ISFUNC(_fname) {
+		EVAL(_fname)
+		return
+	}
+	
+	_fname = 'その他に話しかける'
+	if ISFUNC(_fname) {
+		EVAL(_fname)
+		return
+	}
+	
+	RandomTalk
+}
+
+//話しかける相手をランダムに決定
+AYF_GetRandomSakuraName
+{
+	_ghostlist=IARRAY
+	//FMOが使える場合はFMOから読みます
+	if ISFUNC('SHIORI3FW.RefreshFMOTable') {
+		SHIORI3FW.RefreshFMOTable
+		_ghostlist=SHIORI3FW.SakuraNameList
+	}else{
+		_ghostlist=ghostexlist
+	}
+	if ARRAYSIZE(_ghostlist)>0 {
+		ANY(_ghostlist)
+	}else{
+		''
+	}
+}
+
+//起動中ゴーストリスト取得
+AYL_On_otherghostname
+{
+	// 現在起動中のゴーストのリストを作成する
+	ghostexlist = reference
+}
+
+//------------------------------------------------------------------------------
+//OnCommunicateイベント
+//------------------------------------------------------------------------------
+AYL_OnCommunicate
+{
+	if ARRAYSIZE(reference) >= 4 {
+		if STRLEN(reference[3]) {
+			if reference[2] == 'ECHO/1.0' { //台本コミュニケート(受信)
+				res_securitylevel = 'External'
+				res_reference[0] = reference[0]
+				
+				if STRLEN(marker) == 0 {
+					marker = "Communicate from %(reference[0])"
+				}
+				
+				reference[3]
+				return
+			}
+			elseif reference[2] == 'JPRadish' { //大根コミュニケート(受信)
+				'＊' + TranslateSystemChar(reference[0]) + '大根コミュニケート(reference[3,100])'
+				return
+			}
+		}
+	}
+	
+	_fname = 関数名付加調整('OnCommunicateAYALILITH')
+	if ISFUNC(_fname) {
+		EVAL(_fname)
+		return
+	}
+	
+	if (reference[0] == "user") || (reference[0] == "User") {
+		AYF_ComParseFunc('ユーザー')
+	}
+	else {
+		_r = AYF_ComParseFunc(reference[0])
+		if STRLEN(_r) == 0 {
+			_r = AYF_ComParseFunc('その他')
+		}
+		if STRLEN(_r) > 0 {
+			_r
+		}
+	}
+}
+
+AYF_ComParseFunc
+{
+	_fname = TranslateSystemChar(_argv[0])
+	_fname += 'コミュ'
+	
+	_func_array = IARRAY
+	_func_array ,= GETFUNCLIST(_fname)
+	_func_array ,= GETFUNCLIST('＊' + _fname)
+	
+	_func_result = IARRAY
+	_ev_max = 0
+	
+	foreach _func_array ; _func {
+		if '該当なし' !_in_ _func {
+			_ev = AYF_ComSyntaxToAyaSyntaxEval(_func,_fname,reference[1])
+			if (GETTYPE(_ev) == 1) && (_ev > 0) {
+				if _ev_max < _ev {
+					_func_result = IARRAY
+					_ev_max = _ev
+				}
+				_func_result ,= _func
+			}
+		}
+	}
+	
+	if ARRAYSIZE(_func_result) > 0 {
+		EVAL(ANY(_func_result))
+	}
+	else {
+		_fname = _sname + 'コミュ該当なし'
+		if ISFUNC(_fname) {
+			EVAL(_fname)
+		}
+	}
+}
+
+AYF_ComSyntaxToAyaSyntaxEval
+{
+	_str = _argv[0]
+	
+	//ヘッダを消す
+	_str = REPLACE(_str,_argv[1],'')
+	_str = REPLACE(_str,'＊' + _argv[1],'')
+	
+	_result_and = 0
+	_arr_and = SPLIT(_str,'＆')
+	
+	foreach _arr_and ; _and {
+		_arr_or = SPLIT(_and,'｜')
+		
+		_result_or = 0
+		foreach _arr_or ; _or {
+			if _or _in_ _argv[2] {
+				_result_or = 1
+				break
+			}
+		}
+		
+		if _result_or == 0 {
+			_result_and = 0
+			break
+		}
+		else {
+			_result_and += 1
+		}
+	}
+	
+	_result_and
+}
+
