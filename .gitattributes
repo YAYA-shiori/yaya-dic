@@ -1,0 +1,3 @@
+*	text=auto
+*.dic	text eol=crlf
+*.txt	text eol=crlf
