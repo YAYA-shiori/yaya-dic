@@ -1367,7 +1367,7 @@ AYL_OnGhostChanging
 	_script = CallChangeFunc('へ変更')
 	
 	if STRLEN(_script) == 0 {
-		_script = CallChangeFuncLastCatch('OnClose')
+		_script = CallChangeFuncLastCatch('AYL_OnClose')
 	}
 	
 	_script = REPLACE(_script,'\e','')
@@ -1391,10 +1391,11 @@ AYL_OnGhostChanged
 	
 	タグなしトーク = さくらスクリプト除去(reference[1])
 	
-	_script = GetBootSharedScript + CallChangeFunc('から変更')
+	_change = CallChangeFunc('から変更')
+	_script = GetBootSharedScript + _change
 	
-	if STRLEN(_script) == 0 {
-		_script = CallChangeFuncLastCatch('OnBoot')
+	if STRLEN(_change) == 0 {
+		_script = CallChangeFuncLastCatch('AYL_OnBoot')
 	}
 	
 	_script
@@ -1421,14 +1422,18 @@ AYL_OnGhostCalled
 	
 	タグなしトーク = さくらスクリプト除去(reference[1])
 
-	_script = GetBootSharedScript + CallChangeFunc('から呼び出される')
+	_change = CallChangeFunc('から呼び出される')
 	
-	if TOINT(EVAL('呼び出し反応に切り替え反応を流用')) {
-		_script = GetBootSharedScript + CallChangeFunc('から変更',1)
+	if STRLEN(_change) == 0 {
+		if TOINT(EVAL('呼び出し反応に切り替え反応を流用')) {
+			_change = CallChangeFunc('から変更',1)
+		}
 	}
 	
-	if STRLEN(_script) == 0 {
-		_script = CallChangeFuncLastCatch('OnBoot')
+	_script = GetBootSharedScript + _change
+	
+	if STRLEN(_change) == 0 {
+		_script = CallChangeFuncLastCatch('AYL_OnBoot')
 	}
 	
 	_script
