@@ -264,6 +264,20 @@ ProcessAYALilithSyntaxSub
 	_text
 }
 
+//---- あやりりすEX記法かどうか判定 ----------------------------------------------------------
+IsAYALilithEXSyntax
+{
+	_txtarray  = IARRAY
+	_txtarray ,= SPLIT(_argv[0],C_CRLF)
+	
+	if (ARRAYSIZE(_txtarray) <= 1) && (RE_SEARCH(_txtarray[0],'^[^\\]*(' + AYLex_CHAR_REGEX + ')[^\\]*?[｢「：]') == 0) {
+		0
+	}
+	else {
+		1
+	}
+}
+
 //---- あやりりすEX記法メイン --------------------------------------------------------------
 ProcessAYALilithSyntax
 {

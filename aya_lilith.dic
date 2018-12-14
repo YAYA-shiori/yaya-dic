@@ -2423,11 +2423,11 @@ AYL_AppendToScriptTail
 	_script = _argv[0]
 	_append = _argv[1]
 	
-	if STRSTR(_script,'\e',0) >= 0 { //\eあり
-		REPLACE(_script,'\e',_append + '\e',1)
-	}
-	elseif STRSTR(_script,C_CRLF,0) >= 0 { //あやりりす
+	if ISFUNC('IsAYALilithEXSyntax') && EVAL('IsAYALilithEXSyntax(_script)') { //あやりりす
 		_script + C_CRLF + '＠スクリプト：' + _append
+	}
+	elseif STRSTR(_script,'\e',0) >= 0 { //\eあり
+		REPLACE(_script,'\e',_append + '\e',1)
 	}
 	else {
 		_script + _append
