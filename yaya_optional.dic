@@ -254,12 +254,9 @@ SHIORI3FW.MakeLongText
 		return
 	}
 	
-	_space = '　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　'
-	_menuitem += SUBSTR(_space,0,_len / 2)
+	_space = '                                                                                    '
+	_menuitem += SUBSTR(_space,0,_len)
 	
-	if _len % 2 > 0 {
-		_menuitem += " "
-	}
 	_menuitem
 }
 
