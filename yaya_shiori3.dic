@@ -161,7 +161,8 @@ load
 	array_translateinternal = ASORT('string,ascending',GETFUNCLIST('OnTranslateInternal'))
 
 	SHIORI3FW.InitChain
-	
+	SHIORI3FW.InitAdditionalReturn
+
 	SHIORI3FW.SetDelayEvent('',0)
 
 	//過去互換用（ascii変数）
@@ -293,6 +294,7 @@ C_BYTE1
 	SHIORI3FW.ClearChainVariable
 	SHIORI3FW.ClearReferenceVariable
 	SHIORI3FW.ClearValueexVariable
+	SHIORI3FW.ClearAdditionalReturnVariable
 }
 
 //------------------------------------------------------------------------------
@@ -506,12 +508,14 @@ SHIORI3FW.TranslateEvent
 //------------------------------------------------------------------------------
 OnRequest
 {
+	SHIORI3FW.InitAdditionalReturn
+
 	// コマンド別に処理分岐
 	case REQ.COMMAND {
 	when "NOTIFY" {
 		// NOTIFYリクエスト
 		_result = SHIORI3FW.RaiseIDEvent
-		"SHIORI/3.0 200 OK%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF2)"
+		"SHIORI/3.0 200 OK%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)"
 	}
 
 	when "GET" {
@@ -524,8 +528,6 @@ OnRequest
 				Value: %(_result)%(C_CRLF)"
 			--
 			SHIORI3FW.AssembleReferenceHeader
-			--
-			C_CRLF
 			
 			if SHIORI3FW.Eventid != 'OnTranslate' {
 				SHIORI3FW.EventidOld = SHIORI3FW.Eventid
@@ -536,8 +538,60 @@ OnRequest
 
 	others
 		// 未知のリクエスト
-		"SHIORI/3.0 400 Bad Request%(C_CRLF2)"
+		"SHIORI/3.0 400 Bad Request%(C_CRLF)"
 	}
+
+	--
+	SHIORI3FW.GetAdditionalReturns
+	--
+	C_CRLF
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.InitAdditionalReturn
+//機能　：追加ヘッダ用変数を初期化します
+//------------------------------------------------------------------------------
+SHIORI3FW.InitAdditionalReturn : void
+{
+	SHIORI3FW.AdditionalReturn.Indexs = IARRAY
+	SHIORI3FW.AdditionalReturn.Values = IARRAY
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.PushAdditionalReturn
+//機能　：ヘッダを追加します (設定はリクエストごとにリセットされます)
+//引数　：_argv[0] ヘッダ名  _argv[1] 値
+//------------------------------------------------------------------------------
+SHIORI3FW.PushAdditionalReturn : void
+{
+	SHIORI3FW.AdditionalReturn.Indexs ,= _argv[0]
+	SHIORI3FW.AdditionalReturn.Values ,= _argv[1]
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.ClearAdditionalReturnVariable
+//機能　：追加ヘッダ用変数を削除します
+//------------------------------------------------------------------------------
+SHIORI3FW.ClearAdditionalReturnVariable : void
+{
+	ERASEVAR('SHIORI3FW.AdditionalReturn.Indexs')
+	ERASEVAR('SHIORI3FW.AdditionalReturn.Values')
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.GetAdditionalReturns
+//機能　：追加ヘッダを展開します
+//返値　：追加すべきヘッダ文字列 最後は必ず改行で終わる
+//------------------------------------------------------------------------------
+SHIORI3FW.GetAdditionalReturns
+{
+	_txt = ''
+	while SHIORI3FW.AdditionalReturn.Indexs[0]{
+		_txt+="%(SHIORI3FW.AdditionalReturn.Indexs[0]): %(SHIORI3FW.AdditionalReturn.Values[0])%(C_CRLF)"
+		SHIORI3FW.AdditionalReturn.Indexs[0] = IARRAY
+		SHIORI3FW.AdditionalReturn.Values[0] = IARRAY
+	}
+	_txt
 }
 
 //------------------------------------------------------------------------------
