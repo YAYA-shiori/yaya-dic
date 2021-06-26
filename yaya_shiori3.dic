@@ -146,6 +146,10 @@ load
 	SHIORI3FW.EventidTranslate = ''
 	SHIORI3FW.EventidTranslateOld = ''
 	
+	SHIORI3FW.ErrorDescription = ''
+	SHIORI3FW.ErrorLevel = ''
+	SHIORI3FW.LastErrorDescription = ''
+	
 	SAORI.DllList          = IARRAY
 	basewarename           = ''
 	basewarenameex         = ''
@@ -270,6 +274,9 @@ SHIORI3FW.DelayEventTime
 SHIORI3FW.DelayEvent
 SHIORI3FW.DelayEventReference
 SHIORI3FW.GhostName
+SHIORI3FW.ErrorDescription
+SHIORI3FW.ErrorLevel
+SHIORI3FW.LastErrorDescription
 C_CRLF2
 C_CRLF
 C_BYTE1
@@ -508,8 +515,6 @@ SHIORI3FW.TranslateEvent
 //------------------------------------------------------------------------------
 OnRequest
 {
-	SHIORI3FW.InitAdditionalReturn
-
 	// コマンド別に処理分岐
 	case REQ.COMMAND {
 	when "NOTIFY" {
@@ -533,6 +538,15 @@ OnRequest
 				SHIORI3FW.EventidOld = SHIORI3FW.Eventid
 				SHIORI3FW.EventidTranslateOld = SHIORI3FW.EventidTranslate
 			}
+			
+			SHIORI3FW.GetLastErrorLog
+			
+			if SHIORI3FW.LastErrorDescription != SHIORI3FW.ErrorDescription {
+				SHIORI3FW.LastErrorDescription = SHIORI3FW.ErrorDescription
+				
+				SHIORI3FW.PushAdditionalReturn('ErrorLevel',SHIORI3FW.ErrorLevel)
+				SHIORI3FW.PushAdditionalReturn('ErrorDescription',SHIORI3FW.ErrorDescription)
+			}
 		}
 	}
 
@@ -548,13 +562,67 @@ OnRequest
 }
 
 //------------------------------------------------------------------------------
+//関数名：SHIORI3FW.GetLastErrorLog
+//機能　：エラーログに表示すべき文字列を作成します
+//------------------------------------------------------------------------------
+SHIORI3FW.GetLastErrorLog
+{
+	_errors = GETERRORLOG()
+	
+	_errorlevel_text = 'SHIORI3FW.ERRORLOGLEVEL'
+	_errorlevel = 2
+	
+	if _errorlevel_text == 'note' {
+		_errorlevel = 0
+	}
+	elseif _errorlevel_text == 'warning' {
+		_errorlevel = 1
+	}
+	
+	SHIORI3FW.ErrorDescription = ''
+	SHIORI3FW.ErrorLevel = ''
+	
+	foreach _errors; _error {
+		_el = 0
+		
+		if ( STRSTR(_error,'error',0) >= 0 ) {
+			_el = 2
+		}
+		elseif ( STRSTR(_error,'warning',0) >= 0 ) {
+			_el = 1
+		}
+		
+		if _el < _errorlevel {
+			continue
+		}
+		
+		if STRLEN(SHIORI3FW.ErrorDescription) > 0 {
+			SHIORI3FW.ErrorDescription += CHR(1)
+			SHIORI3FW.ErrorLevel += CHR(1)
+		}
+		
+		SHIORI3FW.ErrorDescription += _error
+		
+		if _el == 0 {
+			SHIORI3FW.ErrorLevel += 'info'
+		}
+		elseif _el == 1 {
+			SHIORI3FW.ErrorLevel += 'warning'
+		}
+		else {
+			SHIORI3FW.ErrorLevel += 'critical'
+		}
+	}
+	
+}
+
+//------------------------------------------------------------------------------
 //関数名：SHIORI3FW.InitAdditionalReturn
 //機能　：追加ヘッダ用変数を初期化します
 //------------------------------------------------------------------------------
 SHIORI3FW.InitAdditionalReturn : void
 {
-	SHIORI3FW.AdditionalReturn.Indexs = IARRAY
-	SHIORI3FW.AdditionalReturn.Values = IARRAY
+	SHIORI3FW.AdditionalReturn.String = ''
 }
 
 //------------------------------------------------------------------------------
@@ -564,8 +632,9 @@ SHIORI3FW.InitAdditionalReturn : void
 //------------------------------------------------------------------------------
 SHIORI3FW.PushAdditionalReturn : void
 {
-	SHIORI3FW.AdditionalReturn.Indexs ,= _argv[0]
-	SHIORI3FW.AdditionalReturn.Values ,= _argv[1]
+	_key="%(_argv[0]): "
+	_argv[0]=IARRAY
+	SHIORI3FW.AdditionalReturn.String += _key+TOSTR(_argv)+C_CRLF
 }
 
 //------------------------------------------------------------------------------
@@ -574,8 +643,7 @@ SHIORI3FW.PushAdditionalReturn : void
 //------------------------------------------------------------------------------
 SHIORI3FW.ClearAdditionalReturnVariable : void
 {
-	ERASEVAR('SHIORI3FW.AdditionalReturn.Indexs')
-	ERASEVAR('SHIORI3FW.AdditionalReturn.Values')
+	ERASEVAR('SHIORI3FW.AdditionalReturn.String')
 }
 
 //------------------------------------------------------------------------------
@@ -585,13 +653,9 @@ SHIORI3FW.ClearAdditionalReturnVariable : void
 //------------------------------------------------------------------------------
 SHIORI3FW.GetAdditionalReturns
 {
-	_txt = ''
-	while SHIORI3FW.AdditionalReturn.Indexs[0]{
-		_txt+="%(SHIORI3FW.AdditionalReturn.Indexs[0]): %(SHIORI3FW.AdditionalReturn.Values[0])%(C_CRLF)"
-		SHIORI3FW.AdditionalReturn.Indexs[0] = IARRAY
-		SHIORI3FW.AdditionalReturn.Values[0] = IARRAY
-	}
-	_txt
+	_t=SHIORI3FW.AdditionalReturn.String
+	SHIORI3FW.AdditionalReturn.String = ''
+	_t
 }
 
 //------------------------------------------------------------------------------
