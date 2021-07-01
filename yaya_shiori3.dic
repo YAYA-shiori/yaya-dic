@@ -638,6 +638,17 @@ SHIORI3FW.PushAdditionalReturn : void
 }
 
 //------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Push_X_SSTP_PassThru
+//機能　：X-SSTP-PassThruヘッダを追加します (設定はリクエストごとにリセットされます)
+//引数　：_argv[0] ヘッダ名  _argv[1] 値
+//------------------------------------------------------------------------------
+SHIORI3FW.Push_X_SSTP_PassThru : void
+{
+	_h = 'X-SSTP-PassThru-' + TOSTR(_argv[0])
+	SHIORI3FW.PushAdditionalReturn(_h,_argv[1])
+}
+
+//------------------------------------------------------------------------------
 //関数名：SHIORI3FW.ClearAdditionalReturnVariable
 //機能　：追加ヘッダ用変数を削除します
 //------------------------------------------------------------------------------
@@ -729,8 +740,8 @@ SHIORI3FW.IsImportantEvent
 //------------------------------------------------------------------------------
 SHIORI3FW.RaiseIDEvent
 {
-	// reference 変数を作成
-	SHIORI3FW.MakeReferenceVariable
+	//reference&PassThru_Ins 変数を作成
+	SHIORI3FW.MakeReferenceAndPassThruInsVariable
 	
 	_event = SHIORI3FW.EventidTranslate
 	
@@ -816,8 +827,8 @@ SHIORI3FW.RaiseIDEvent
 		}
 	}
 
-	// reference 変数をクリア
-	SHIORI3FW.ClearReferenceVariable
+	// reference&PassThru_Ins 変数をクリア
+	SHIORI3FW.ClearReferenceAndPassThruInsVariable
 }
 
 //------------------------------------------------------------------------------
@@ -832,14 +843,14 @@ SHIORI3FW.MakeEmptyResponse
 	when "OnFirstBoot", "OnBoot", "OnWindowStateRestore", "OnGhostChanged"
 		// スコープ0/1の基本サーフィスを出す必要があるイベント
 		"SHIORI/3.0 200 OK%(C_CRLF)Sender: AYA%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)/
-			Value: \0\s[0]\1\s[10]\e%(C_CRLF2)"
+			Value: \0\s[0]\1\s[10]\e%(C_CRLF)"
 	when "OnClose"
 		// 終了指示を出す必要があるイベント
 		"SHIORI/3.0 200 OK%(C_CRLF)Sender: AYA%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)/
-			Value: \0\-\e%(C_CRLF2)"
+			Value: \0\-\e%(C_CRLF)"
 	others
 		// 上記以外では204を返送して良い
-		"SHIORI/3.0 204 No Content%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF2)"
+		"SHIORI/3.0 204 No Content%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)"
 	}
 }
 
@@ -939,40 +950,50 @@ SHIORI3FW.GetDelayEvent
 }
 
 //------------------------------------------------------------------------------
-//関数名：SHIORI3FW.MakeReferenceVariable
-//機能　：Reference*ヘッダからreference*変数を作成します
+//関数名：SHIORI3FW.MakeReferenceAndPassThruInsVariable
+//機能　：Reference*ヘッダからreference*変数/PassThru_Ins.*変数を作成します
 //------------------------------------------------------------------------------
-SHIORI3FW.MakeReferenceVariable : void
-{
+SHIORI3FW.MakeReferenceAndPassThruInsVariable : void {
 	SHIORI3FW.ReferenceList = IARRAY
-	reference               = IARRAY
-	reference.raw           = IARRAY
-	_sz                     = ARRAYSIZE(var.req.key)
+	SHIORI3FW.PassThru_Ins_List = IARRAY
+	reference = IARRAY
+	reference.raw = IARRAY
+	_sz = ARRAYSIZE(var.req.key)
+
 	for _i = 0; _i < _sz; _i++ {
-		if SUBSTR(_keyname = var.req.key[_i], 0, 9) == "Reference" {
+		if SUBSTR(_keyname = var.req.key[_i], 0, 9) == 'Reference' {
 			_refnum = TOINT(SUBSTR(_keyname, 9, 3))
 			_value = var.req.value[_i]
 			reference[_refnum] = _value
 			reference.raw[_refnum] = var.req.rawvalue[_i]
-			
-			if SHIORI3FW.REF_ACCEL==0 { //1にすると高速化
-				_varname = "reference%(_refnum)"
-				void EVAL("%(_varname) = _value")
+
+			if SHIORI3FW.REF_ACCEL==0 {//1にすると高速化
+				_varname = 'reference'+_refnum
+				EVAL(_varname+' = _value')
 				SHIORI3FW.ReferenceList ,= _varname
 			}
+		}
+		elseif SUBSTR(_keyname = var.req.key[_i], 0, 16) == 'X-SSTP-PassThru-' {
+			_PassThru_Ins_Name = SUBSTR(_keyname, 9, STRLEN(_keyname))
+			_value = var.req.value[_i]
+
+			_varname = 'PassThru_Ins.'+_PassThru_Ins_Name
+			EVAL(_varname+' = _value')
+			SHIORI3FW.PassThru_Ins_List ,= _varname
 		}
 	}
 }
 
 //------------------------------------------------------------------------------
-//関数名：SHIORI3FW.ClearReferenceVariable
-//機能　：reference*変数を削除します
+//関数名：SHIORI3FW.ClearReferenceAndPassThruInsVariable
+//機能　：reference*&PassThru_Ins.*変数を削除します
 //------------------------------------------------------------------------------
-SHIORI3FW.ClearReferenceVariable
-{
+SHIORI3FW.ClearReferenceAndPassThruInsVariable : void {
 	foreach SHIORI3FW.ReferenceList; _refname { ERASEVAR(_refname) }
 	ERASEVAR('SHIORI3FW.ReferenceList')
 	ERASEVAR('reference','reference.raw')
+	foreach SHIORI3FW.PassThru_Ins_List; _refname { ERASEVAR(_refname) }
+	ERASEVAR('SHIORI3FW.PassThru_Ins_List')
 }
 
 //******************************************************************************
