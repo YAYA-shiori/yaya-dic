@@ -437,6 +437,9 @@ request
 			// ハンドラが無い場合は即返る
 			if !ISFUNC(SHIORI3FW.EventidTranslate) && !SHIORI3FW.IsImportantEvent {
 				SHIORI3FW.MakeEmptyResponse(SHIORI3FW.Eventid)
+				--
+				C_CRLF
+				
 				return
 			}
 			_idparsed = 1
