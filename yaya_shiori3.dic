@@ -1560,7 +1560,7 @@ UNIQUE
 	
 	for _i = 0 ; _i < _n ; _i++ {
 		for _j = _i+1 ; _j < _n ; _j++ {
-			if _argv[_i] == _argv[_j] {
+			if _v[_i] == _v[_j] {
 				_v[_j] = IARRAY
 				_n -= 1
 				_j -= 1
