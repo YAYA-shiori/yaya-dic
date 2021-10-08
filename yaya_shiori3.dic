@@ -145,6 +145,7 @@ load
 	SHIORI3FW.EventidOld = ''
 	SHIORI3FW.EventidTranslate = ''
 	SHIORI3FW.EventidTranslateOld = ''
+	SHIORI3FW.SecurityLevel = ''
 	
 	SHIORI3FW.ErrorDescription = ''
 	SHIORI3FW.ErrorLevel = ''
@@ -250,6 +251,8 @@ status
 res_securitylevel
 res_reference
 res_marker
+marker
+res_valuenotify
 refold
 refold0
 SHIORI3FW.Path
@@ -270,6 +273,7 @@ SHIORI3FW.Eventid
 SHIORI3FW.EventidOld
 SHIORI3FW.EventidTranslate
 SHIORI3FW.EventidTranslateOld
+SHIORI3FW.SecurityLevel
 SHIORI3FW.DelayEventTime
 SHIORI3FW.DelayEvent
 SHIORI3FW.DelayEventReference
@@ -382,6 +386,8 @@ request
 	_idparsed = 0
 	
 	status = ''
+	SHIORI3FW.Eventid=''
+	SHIORI_FW.SecurityLevel='Internal' //互換性のためデフォルトはInternal
 	
 	while _lineend > _linestart {
 		//行分割
@@ -444,12 +450,9 @@ request
 			}
 			_idparsed = 1
 		}
-		// セキュリティレベル="External"なら即返る
+		// セキュリティレベル
 		elseif _key == 'SecurityLevel' {
-			if _value == 'External' {
-				"SHIORI/3.0 204 No Content%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF2)"
-				return
-			}
+			SHIORI_FW.SecurityLevel = _value
 		}
 		// ベースウェア名取得
 		elseif _key == 'Sender' {
@@ -462,6 +465,12 @@ request
 		//Status
 		elseif _key == 'Status' {
 			status = _value
+		}
+
+		//特定のイベントを除きExternalなら204で返る
+		if SHIORI3FW.SecurityLevel == 'External' && SHIORI3FW.Eventid != 'OnXUkagakaLinkOpen' {
+			SHIORI3FW.MakeEmptyResponse
+			return
 		}
 
 		// キーと値を記憶
@@ -711,9 +720,20 @@ SHIORI3FW.AssembleReferenceHeader
 		}
 	}
 	
-	if marker != "" {
-		_result += "Marker: %(marker)%(C_CRLF)"
-		ERASEVAR('marker')
+	if (marker != "") || (res_marker != "") {
+		if marker != "" {
+			_result += "Marker: %(marker)%(C_CRLF)"
+			ERASEVAR('marker')
+		}
+		else {
+			_result += "Marker: %(res_marker)%(C_CRLF)"
+			ERASEVAR('res_marker')
+		}
+	}
+	
+	if res_valuenotify != "" {
+		_result += "ValueNotify: %(res_valuenotify)"
+		ERASEVAR('res_valuenotify')
 	}
 	
 	_result
