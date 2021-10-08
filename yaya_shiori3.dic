@@ -387,7 +387,7 @@ request
 	
 	status = ''
 	SHIORI3FW.Eventid=''
-	SHIORI_FW.SecurityLevel='Internal' //互換性のためデフォルトはInternal
+	SHIORI3FW.SecurityLevel='Internal' //互換性のためデフォルトはInternal
 	
 	while _lineend > _linestart {
 		//行分割
@@ -452,7 +452,7 @@ request
 		}
 		// セキュリティレベル
 		elseif _key == 'SecurityLevel' {
-			SHIORI_FW.SecurityLevel = _value
+			SHIORI3FW.SecurityLevel = _value
 		}
 		// ベースウェア名取得
 		elseif _key == 'Sender' {
