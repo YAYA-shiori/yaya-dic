@@ -29,6 +29,9 @@ SHIORI3FW.BalloonHWnd
 SHIORI3FW.UniqueID
 　Auth.SSTPに使用するID
 
+SHIORI3FW.Capability
+　ID: capabilityで来たベースウェアのヘッダ処理能力：汎用配列
+
 SHIORI3FW.GhostName
 　ゴースト名★
 
@@ -281,6 +284,7 @@ SHIORI3FW.GhostName
 SHIORI3FW.ErrorDescription
 SHIORI3FW.ErrorLevel
 SHIORI3FW.LastErrorDescription
+SHIORI3FW.Capability
 C_CRLF2
 C_CRLF
 C_BYTE1
@@ -532,7 +536,9 @@ OnRequest
 	when "NOTIFY" {
 		// NOTIFYリクエスト
 		_result = SHIORI3FW.RaiseIDEvent
-		"SHIORI/3.0 200 OK%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)"
+		"SHIORI/3.0 204 No Content%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)"
+		--
+		SHIORI3FW.AssembleReferenceHeader(1)
 	}
 
 	when "GET" {
@@ -544,7 +550,7 @@ OnRequest
 			"SHIORI/3.0 200 OK%(C_CRLF)Sender: AYA%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)/
 				Value: %(_result)%(C_CRLF)"
 			--
-			SHIORI3FW.AssembleReferenceHeader
+			SHIORI3FW.AssembleReferenceHeader(0)
 			
 			if SHIORI3FW.Eventid != 'OnTranslate' {
 				SHIORI3FW.EventidOld = SHIORI3FW.Eventid
@@ -687,47 +693,51 @@ SHIORI3FW.GetAdditionalReturns
 //------------------------------------------------------------------------------
 SHIORI3FW.AssembleReferenceHeader
 {
+	_is_notify = TOINT(_argv[0])
+	
 	_result = ""
 	_before = ""
 	
-	_r = GETTYPEEX('res_reference')
-	
-	if _r != 0 {
-		if _r == 4 {
-			_n = ARRAYSIZE(res_reference)
-			for _i = 0 ; _i < _n ; _i++ {
-				_result += "Reference%(_i): %(res_reference[_i])%(C_CRLF)"
-			}
-		}
-		else {
-			_result += "Reference0: %(res_reference)%(C_CRLF)"
-		}
-		ERASEVAR('res_reference')
-	}
-	else {
-		for _i = 0; _i < SHIORI3FW.RES_REF_MAX; _i++ {
-			_before = _value
-			
-			_varname = "res_reference" + _i
-			_value = EVAL(_varname)
-			if _value != "" {
-				_result += "Reference%(_i): %(_value)%(C_CRLF)"
-				ERASEVAR(_varname);
+	if _is_notify == 0 {
+		_r = GETTYPEEX('res_reference')
+		
+		if _r != 0 {
+			if _r == 4 {
+				_n = ARRAYSIZE(res_reference)
+				for _i = 0 ; _i < _n ; _i++ {
+					_result += "Reference%(_i): %(res_reference[_i])%(C_CRLF)"
+				}
 			}
 			else {
-				if _before == ""; break
+				_result += "Reference0: %(res_reference)%(C_CRLF)"
 			}
-		}
-	}
-	
-	if (marker != "") || (res_marker != "") {
-		if marker != "" {
-			_result += "Marker: %(marker)%(C_CRLF)"
-			ERASEVAR('marker')
+			ERASEVAR('res_reference')
 		}
 		else {
-			_result += "Marker: %(res_marker)%(C_CRLF)"
-			ERASEVAR('res_marker')
+			for _i = 0; _i < SHIORI3FW.RES_REF_MAX; _i++ {
+				_before = _value
+				
+				_varname = "res_reference" + _i
+				_value = EVAL(_varname)
+				if _value != "" {
+					_result += "Reference%(_i): %(_value)%(C_CRLF)"
+					ERASEVAR(_varname);
+				}
+				else {
+					if _before == ""; break
+				}
+			}
+		}
+		
+		if (marker != "") || (res_marker != "") {
+			if marker != "" {
+				_result += "Marker: %(marker)%(C_CRLF)"
+				ERASEVAR('marker')
+			}
+			else {
+				_result += "Marker: %(res_marker)%(C_CRLF)"
+				ERASEVAR('res_marker')
+			}
 		}
 	}
 	
@@ -1729,6 +1739,11 @@ SHIORI3EV.On_hwnd : void
 SHIORI3EV.On_uniqueid : void
 {
 	SHIORI3FW.UniqueID = reference[0]
+}
+
+SHIORI3EV.On_capability : void
+{
+	SHIORI3FW.Capability = reference
 }
 
 SHIORI3EV.OnNotifySelfInfo : void
