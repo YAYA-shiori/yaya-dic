@@ -535,7 +535,7 @@ OnRequest
 	case REQ.COMMAND {
 	when "NOTIFY" {
 		// NOTIFYリクエスト
-		_result = SHIORI3FW.RaiseIDEvent
+		void SHIORI3FW.RaiseIDEvent
 		"SHIORI/3.0 204 No Content%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)"
 		--
 		SHIORI3FW.AssembleReferenceHeader(1)
@@ -1001,7 +1001,7 @@ SHIORI3FW.MakeReferenceAndPassThruInsVariable : void {
 
 			if SHIORI3FW.REF_ACCEL==0 {//1にすると高速化
 				_varname = 'reference'+_refnum
-				EVAL(_varname+' = _value')
+				LETTONAME(_varname, _value)
 				SHIORI3FW.ReferenceList ,= _varname
 			}
 		}
@@ -1010,7 +1010,7 @@ SHIORI3FW.MakeReferenceAndPassThruInsVariable : void {
 			_value = var.req.value[_i]
 
 			_varname = 'PassThru_Ins.'+_PassThru_Ins_Name
-			EVAL(_varname+' = _value')
+			LETTONAME(_varname, _value)
 			SHIORI3FW.PassThru_Ins_List ,= _varname
 		}
 	}
@@ -1201,8 +1201,8 @@ SHIORI3FW.ExecuteDl2ToDll
 	// 拡張子dl2をdllへ名前変更する　旧dllは消去する
 	foreach _targets; _target {
 		_path = _argv[0] + '\' + _target
-		_dmy = FDEL(_path + '.dll')
-		_dmy = FRENAME(_path + '.dl2', _path + '.dll')
+		void FDEL(_path + '.dll')
+		void FRENAME(_path + '.dl2', _path + '.dll')
 	}
 }
 
@@ -1471,7 +1471,7 @@ SHIORI3FW.MakeValueexVariable
 	for _i = 0; _i < _sz; _i++ {
 		if SUBSTR(_keyname = var.lib.key[_i], 0, 5) == "Value" {
 			_varname = "valueex%(SUBSTR(_keyname, 5, 3))"
-			void EVAL("%(_varname) = var.lib.value[_i]")
+			LETTONAME(_varname, var.lib.value[_i])
 			SHIORI3FW.ValueexList ,= _varname
 			valueex[TOINT(SUBSTR(_keyname, 5, 3))] = var.lib.value[_i]
 		}
