@@ -116,7 +116,7 @@ OnSystemUnload.ﾟAYALILITH : void //ﾟはソート順序を最後にするた�
 	ERASEVAR('ghostexlist')
 	
 	ERASEVAR('mousedown_reference_array','mousedown_time','mousedown_exec_complete')
-	ERASEVAR('mouseevent_time''mouseevent_colname','mouseevent_count','マウスイベント連続回数','クリック連続回数','マウスイベントキャラID')
+	ERASEVAR('mouseevent_time','mouseevent_colname','mouseevent_count','マウスイベント連続回数','クリック連続回数','マウスイベントキャラID')
 	
 	//'情報_シェル名','情報_バルーン名'は消さない
 	ERASEVAR('情報_ゴースト名','情報_キャラ名')
@@ -311,7 +311,7 @@ AYLXX_Debug_Menu_Exec
 	
 	_txt
 	--
-	\n[half]
+	'\n[half]'
 	--
 	メニュー('閉じる','script:\b[-1]')
 }
@@ -2133,7 +2133,7 @@ AYL_OnMouseGesture
 				if _name !_in_ gesture_wheel_event_raised {
 					reference[3] = reference[0]
 					
-					_xy = SPLIT(referece[1],C_BYTE1)
+					_xy = SPLIT(reference[1],C_BYTE1)
 					reference[0] = _xy[0]
 					reference[1] = _xy[1]
 					

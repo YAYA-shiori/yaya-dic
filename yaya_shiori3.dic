@@ -175,7 +175,7 @@ load
 
 	//過去互換用（ascii変数）
 	if ISFUNC('restore_old_variables') {
-		restore_old_variables
+		EVAL('restore_old_variables')
 	}
 	
 	AyaLoad.FuncEnumExec('OnSystemLoad','ascending')
@@ -307,7 +307,7 @@ C_BYTE1
 	ERASEVAR('tempvarname')
 	
 	SHIORI3FW.ClearChainVariable
-	SHIORI3FW.ClearReferenceVariable
+	SHIORI3FW.ClearReferenceAndPassThruInsVariable
 	SHIORI3FW.ClearValueexVariable
 	SHIORI3FW.ClearAdditionalReturnVariable
 }
@@ -697,6 +697,7 @@ SHIORI3FW.AssembleReferenceHeader
 	
 	_result = ""
 	_before = ""
+	_value = ""
 	
 	if _is_notify == 0 {
 		_r = GETTYPEEX('res_reference')
@@ -782,9 +783,7 @@ SHIORI3FW.RaiseIDEvent
 	if SHIORI3FW.Eventid == "OnSecondChange" {
 		// OnSecondChangeならランダムトーク関連処理
 		_event = SHIORI3FW.ControlAITalk(_event)
-		if eventtranslate_exist {
-			_event = EVAL('OnGhostEventTranslate(_event)')
-		}
+		_event = SHIORI3FW.TranslateEvent(_event)
 	}
 	
 	if _event != 'OnSecondChange' {
@@ -834,7 +833,7 @@ SHIORI3FW.RaiseIDEvent
 		for _i = 0 ; _i < _n ; _i += 1 {
 			if _delim[_i] == EVAL_DELIM {
 				// 遅延EVAL
-				_trash = EVAL(_talk[_i + 1])
+				void EVAL(_talk[_i + 1])
 			}
 			elseif _delim[_i] == CHAIN_DELIM {
 				// チェイン処理

@@ -136,7 +136,7 @@ id|name|keroname|hwnd|kerohwnd|path|ghostpath,
 //------------------------------------------------------------------------------
 SHIORI3FW.RefreshFMOTable : void
 {
-	_fmoname=TOSTR(argv[0])
+	_fmoname=TOSTR(_argv[0])
 	if _fmoname == '' {
 		_fmoname='Sakura'
 	}
