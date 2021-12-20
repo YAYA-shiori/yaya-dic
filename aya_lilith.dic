@@ -1144,7 +1144,7 @@ RandomTalkArrayNewTalk
 	}
 	
 	if _changed {
-		last_new_talk_array = UNIQUE(last_new_talk_array)
+		last_new_talk_array = ARRAYDEDUP(last_new_talk_array)
 	}
 	
 	_n = ARRAYSIZE(last_new_talk_array)
