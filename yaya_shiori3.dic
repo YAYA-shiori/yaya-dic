@@ -1285,6 +1285,10 @@ SHIORI3FW.StructInstalledGhostList
 //------------------------------------------------------------------------------
 SHIORI3FW.GetGhostNameFromDescriptTxt
 {
+	_charset = SHIORI3FW.GetCharsetFromDescriptTxt(_argv[0])
+	if _charset == ''
+		_charset = 'Shift_JIS'
+	FCHARSET(_charset)
 	if !FOPEN(_filename = "%_argv[0]\ghost\master\descript.txt", "r")
 		return
 
@@ -1311,6 +1315,33 @@ SHIORI3FW.GetGhostNameFromDescriptTxt
 
 	FCLOSE(_filename)
 	_ghostname
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.GetCharsetFromDescriptTxt
+//機能　：descript.txtからcharsetを取得します
+//引数　：_argv[0] 取得対象のゴーストディレクトリ
+//------------------------------------------------------------------------------
+SHIORI3FW.GetCharsetFromDescriptTxt
+{
+	if !FOPEN(_filename = "%_argv[0]\ghost\master\descript.txt", "r")
+		return
+
+	_charset = ''
+	_flag = 0
+	while _flag != 1 {
+		if (_line = FREAD(_filename)) == -1; break
+		
+		case TOLOWER(CUTSPACE(_line[0])) {
+			when 'charset' {
+				_charset = CUTSPACE(_line[1])
+				_flag++
+			}
+		}
+	}
+
+	FCLOSE(_filename)
+	_charset
 }
 
 //******************************************************************************
