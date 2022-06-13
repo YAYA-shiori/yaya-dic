@@ -284,6 +284,12 @@ SHIORI3FW.ErrorDescription
 SHIORI3FW.ErrorLevel
 SHIORI3FW.LastErrorDescription
 SHIORI3FW.Capability
+SHIORI3FW.DebugMode
+SHIORI3FW.Status
+SHIORI3FW.UserName
+SHIORI3FW.UserNameFull
+SHIORI3FW.UserBirthday
+SHIORI3FW.UserSex
 C_CRLF2
 C_CRLF
 C_BYTE1
@@ -293,6 +299,7 @@ C_BYTE1
 	//SHIORI3FW.ShellNameOld
 	//SHIORI3FW.ShellPath
 	//SHIORI3FW.BalloonName
+	//SHIORI3FW.BalloonNameOld
 	//SHIORI3FW.BalloonPath
 	//SHIORI3FW.LastSurface
 	//SHIORI3FW.IsVisible
