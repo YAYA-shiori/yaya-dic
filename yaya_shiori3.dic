@@ -1496,13 +1496,11 @@ SHIORI3FW.RequestLib
 //------------------------------------------------------------------------------
 SHIORI3FW.MakeValueexVariable
 {
-	SHIORI3FW.ValueexList = IARRAY
-	_sz                   = ARRAYSIZE(var.lib.key)
+	_sz = ARRAYSIZE(var.lib.key)
 	for _i = 0; _i < _sz; _i++ {
 		if SUBSTR(_keyname = var.lib.key[_i], 0, 5) == "Value" {
 			_varname = "valueex%(SUBSTR(_keyname, 5, 3))"
 			LETTONAME(_varname, var.lib.value[_i])
-			SHIORI3FW.ValueexList ,= _varname
 			valueex[TOINT(SUBSTR(_keyname, 5, 3))] = var.lib.value[_i]
 		}
 	}
@@ -1514,8 +1512,12 @@ SHIORI3FW.MakeValueexVariable
 //------------------------------------------------------------------------------
 SHIORI3FW.ClearValueexVariable
 {
-	foreach SHIORI3FW.ValueexList; _exname { ERASEVAR(_exname) }
-	ERASEVAR('SHIORI3FW.ValueexList')
+	_valueexList = GETVARLIST('valueex')
+	foreach _valueexList; _exname {
+		if ISINTSTR(ERASE(_exname, 0, STRLEN('valueex'))) {
+			ERASEVAR(_exname)
+		}
+	}
 	ERASEVAR('valueex')
 }
 
