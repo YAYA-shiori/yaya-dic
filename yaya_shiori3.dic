@@ -1289,7 +1289,7 @@ SHIORI3FW.GetGhostNameFromDescriptTxt
 	if _charset == ''
 		_charset = 'Shift_JIS'
 	FCHARSET(_charset)
-	if !FOPEN(_filename = "%_argv[0]\ghost\master\descript.txt", "r")
+	if !FOPEN(_filename = "%(_argv[0])\ghost\master\descript.txt", "r")
 		return
 
 	_ghostname = IARRAY
@@ -1324,7 +1324,7 @@ SHIORI3FW.GetGhostNameFromDescriptTxt
 //------------------------------------------------------------------------------
 SHIORI3FW.GetCharsetFromDescriptTxt
 {
-	if !FOPEN(_filename = "%_argv[0]\ghost\master\descript.txt", "r")
+	if !FOPEN(_filename = "%(_argv[0])\ghost\master\descript.txt", "r")
 		return
 
 	_charset = ''
