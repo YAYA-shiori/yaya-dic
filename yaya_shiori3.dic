@@ -1867,7 +1867,7 @@ SHIORI3EV.On_enable_log : void
 	}
 }
 
-SHIORI3EV.On_log_path : void
+SHIORI3EV.On_log_path
 {
 	SHIORI3FW.Path + 'yaya_ssp_debug.log'
 }
