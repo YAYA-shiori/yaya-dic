@@ -130,7 +130,6 @@ load
 	SHIORI3FW.LastAITalk   = ''
 	SHIORI3FW.LastAITalkTime = _sec
 	SHIORI3FW.TalkEndTime  = _sec
-	SHIORI3FW.IsTalking    = 0
 	
 	if GETTYPE(SHIORI3FW.LastSurface) != 4 {
 		SHIORI3FW.LastSurface  = (0,10)
