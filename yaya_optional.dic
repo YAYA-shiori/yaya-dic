@@ -141,7 +141,11 @@ SHIORI3FW.RefreshFMOTable : void
 		_fmoname='Sakura'
 	}
 
-	_result=READFMO(_fmoname)
+	_result=''
+	if _fmoname == 'SakuraUnicode'
+		_result=READFMO(_fmoname,'UTF-8')
+	else
+		_result=READFMO(_fmoname)
 	
 	if SHIORI3FW.FMOCache == _result {
 		//変わっていなければ即座に戻る
