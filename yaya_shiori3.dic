@@ -1503,6 +1503,8 @@ SHIORI3FW.RequestLib
 //------------------------------------------------------------------------------
 SHIORI3FW.MakeValueexVariable
 {
+	SHIORI3FW.ClearValueexVariable()
+	valueex = IARRAY()
 	_sz = ARRAYSIZE(var.lib.key)
 	for _i = 0; _i < _sz; _i++ {
 		if SUBSTR(_keyname = var.lib.key[_i], 0, 5) == "Value" {
