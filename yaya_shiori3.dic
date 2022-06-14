@@ -306,10 +306,7 @@ C_BYTE1
 
 	ERASEVAR(SPLIT(_var,C_CRLF))
 	
-	_n = ARRAYSIZE(tempvarname)
-	for _i = 0 ; _i < _n ; _i++ {
-		ERASEVAR("%(tempvarname[_i])")
-	}
+	ERASEVAR(tempvarname)
 	ERASEVAR('tempvarname')
 	
 	SHIORI3FW.ClearChainVariable
