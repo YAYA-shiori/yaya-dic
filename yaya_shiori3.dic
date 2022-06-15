@@ -1863,6 +1863,7 @@ SHIORI3EV.On_name
 	GETSETTING('coreinfo.name')
 }
 
+//---- tama対応 ------------------------------------------------------------------
 SHIORI3EV.On_tamaOpen
 {
 	SHIORI3FW.TamaHwnd = reference[0]
