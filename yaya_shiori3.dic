@@ -559,15 +559,14 @@ OnRequest
 				SHIORI3FW.EventidOld = SHIORI3FW.Eventid
 				SHIORI3FW.EventidTranslateOld = SHIORI3FW.EventidTranslate
 			}
+		}
+		SHIORI3FW.GetLastErrorLog
+		
+		if SHIORI3FW.LastErrorDescription != SHIORI3FW.ErrorDescription {
+			SHIORI3FW.LastErrorDescription = SHIORI3FW.ErrorDescription
 			
-			SHIORI3FW.GetLastErrorLog
-			
-			if SHIORI3FW.LastErrorDescription != SHIORI3FW.ErrorDescription {
-				SHIORI3FW.LastErrorDescription = SHIORI3FW.ErrorDescription
-				
-				SHIORI3FW.PushAdditionalReturn('ErrorLevel',SHIORI3FW.ErrorLevel)
-				SHIORI3FW.PushAdditionalReturn('ErrorDescription',SHIORI3FW.ErrorDescription)
-			}
+		SHIORI3FW.PushAdditionalReturn('ErrorLevel',SHIORI3FW.ErrorLevel)
+			SHIORI3FW.PushAdditionalReturn('ErrorDescription',SHIORI3FW.ErrorDescription)
 		}
 	}
 
