@@ -162,7 +162,7 @@ load
 	S_CHARSET = GETSETTING('charset.output')
 	
 	status = ''
-	tempvarname = IARRAY
+	SHIORI3FW.tempvarname = IARRAY
 	
 	array_eventtranslate = ASORT('string,ascending',GETFUNCLIST('OnGhostEventTranslate'))
 	array_translateinternal = ASORT('string,ascending',GETFUNCLIST('OnTranslateInternal'))
@@ -306,8 +306,10 @@ C_BYTE1
 
 	ERASEVAR(SPLIT(_var,C_CRLF))
 	
-	ERASEVAR(tempvarname)
-	ERASEVAR('tempvarname')
+	if ARRAYSIZE(SHIORI3FW.tempvarname) {
+		ERASEVAR(SHIORI3FW.tempvarname)
+	}
+	ERASEVAR('SHIORI3FW.tempvarname')
 	
 	SHIORI3FW.ClearChainVariable
 	SHIORI3FW.ClearReferenceAndPassThruInsVariable
@@ -1544,8 +1546,8 @@ SHIORI3FW.SaoriUnloadAll
 SHIORI3FW.RegisterTempVar
 {
 	for _i = 0 ; _i < _argc ; _i++ {
-		if ASEARCH(_argv[_i],tempvarname) < 0 {
-			tempvarname ,= _argv[_i]
+		if ASEARCH(_argv[_i],SHIORI3FW.tempvarname) < 0 {
+			SHIORI3FW.tempvarname ,= _argv[_i]
 		}
 	}
 }
@@ -1859,6 +1861,24 @@ SHIORI3EV.On_craftmanw
 SHIORI3EV.On_name
 {
 	GETSETTING('coreinfo.name')
+}
+
+SHIORI3EV.On_tamaOpen
+{
+	SHIORI3FW.TamaHwnd = reference[0]
+	SETTAMAHWND(SHIORI3FW.TamaHwnd)
+}
+
+SHIORI3EV.On_tamaExit
+{
+	ERASEVAR('SHIORI3FW.TamaHwnd')
+}
+
+SHIORI3EV.OnInitialize
+{
+	if reference[0] == 'reload' {
+		SETTAMAHWND(SHIORI3FW.TamaHwnd)
+	}
 }
 
 //******************************************************************************
