@@ -1,4 +1,4 @@
-dic, config.dic
-dic, shiori3.dic
-dic, compatible.dic
-# dic, optional.dic
+dic, config.dic, UTF-8
+dic, shiori3.dic, UTF-8
+dic, compatible.dic, UTF-8
+# dic, optional.dic, UTF-8
