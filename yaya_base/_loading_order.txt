@@ -1,4 +1,4 @@
-dic, yaya_config.dic
-dic, yaya_shiori3.dic
-dic, yaya_compatible.dic
-dic, yaya_optional.dic
+dic, config.dic
+dic, shiori3.dic
+dic, compatible.dic
+# dic, optional.dic

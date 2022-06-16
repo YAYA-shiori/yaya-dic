@@ -1,14 +1,20 @@
 # yaya-dic
 YAYA向けシステム辞書＆あやりりすのリポジトリです。別プロジェクトに分離し参照しやすくしました。
 
-## Useage
+## 使い方
+
+基礎設定ファイルに下記を追記してください。
+
 ```
 dicdir, aya_lilith
 dicdir, yaya_base
 ```
-必要に応じて`yaya_base/yaya_config.dic`を修正したり、`yaya_base/yaya_optional.dic`の内容を削除したり、`yaya_base/yaya_compatible.dic`を削除したりすることが可能です。
 
-## License
+必要に応じて`yaya_base/config.dic`を修正してください。
+
+また、_loading_oader.txt を編集することで、`yaya_base/optional.dic`を無効にしたり、`yaya_base/compatible.dic`を有効にすることが可能です。
+
+## ライセンス
 
 Public Domain (Unlicense)
 
