@@ -1873,6 +1873,7 @@ SHIORI3EV.On_tamaOpen
 SHIORI3EV.On_tamaExit
 {
 	ERASEVAR('SHIORI3FW.TamaHwnd')
+	SETTAMAHWND(0)
 }
 
 SHIORI3EV.OnInitialize
