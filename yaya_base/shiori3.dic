@@ -1521,7 +1521,7 @@ SHIORI3FW.ClearValueexVariable
 {
 	_valueexList = GETVARLIST('valueex')
 	foreach _valueexList; _exname {
-		if ISINTSTR(ERASE(_exname, 0, STRLEN('valueex'))) {
+		if RE_MATCH(_exname, 'valueex[0-9]+') {
 			ERASEVAR(_exname)
 		}
 	}
