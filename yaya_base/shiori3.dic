@@ -503,7 +503,7 @@ request
 
 	OnRequest
 }
-
+TOAUTOEX{ TOAUTO(_argv[0], 1) }
 SHIORI3FW.TranslateEvent
 {
 	_result = _argv[0]
