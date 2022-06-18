@@ -497,21 +497,11 @@ request
 			}
 		}
 		else {
-			var.req.value ,= TOAUTOEX(_value)
+			var.req.value ,= TOAUTO(_value, 1)
 		}
 	}
 
 	OnRequest
-}
-
-TOAUTOEX
-{
-	_v = _argv[0]
-	if TOSTR(TOAUTO(_v)) == _v {
-		TOAUTO(_v)
-		return
-	}
-	_v
 }
 
 SHIORI3FW.TranslateEvent
@@ -1483,7 +1473,7 @@ SHIORI3FW.RequestLib
 				_valuecv = REPLACE(_value, C_BYTE1, ',')
 		}
 		else {
-			_valuecv = TOAUTOEX(_value)
+			_valuecv = TOAUTO(_value, 1)
 		}
 		
 		var.lib.value ,= _valuecv
