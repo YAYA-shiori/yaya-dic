@@ -1,0 +1,20 @@
+on:
+  push
+
+name: auto check
+
+jobs:
+  check:
+    name: auto check
+    runs-on: windows-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: download shiori
+        run: |
+             aria2c https://github.com/ponapalt/yaya-shiori/releases/latest/download/yaya.zip
+             7z x yaya.zip -tzip
+      - name: shiori-check
+        uses: Taromati2/yaya-CI-check@v1
+        with:
+          shiori-path: .\yaya.dll
