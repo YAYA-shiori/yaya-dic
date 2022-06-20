@@ -35,9 +35,9 @@
 
 ASC
 {
-	if !_argc;                              " "
-	elseif GETTYPE(_argv[0]) != 1;          " "
-	elseif _argv[0] < 0 || _argv[0] > 0x7f; " "
+	if !_argc;                              ' '
+	elseif GETTYPE(_argv[0]) != 1;          ' '
+	elseif _argv[0] < 0 || _argv[0] > 0x7f; ' '
 	else;                                   CHR(_argv[0])
 }
 
@@ -93,16 +93,16 @@ REQ.KEY
 
 	switch GETTYPE(_i = _argv[0]) {
 		// エラー
-		""
+		''
 
 		// 位置指定
-		var.req.key[_i];
+		var.req.key[_i]
 
 		// 位置指定（実数）　整数化して処理
 		var.req.key[TOINT(_i)]
 
 		// 文字列はエラー
-		""
+		''
 	}
 }
 
@@ -121,10 +121,10 @@ REQ.VALUE
 
 	switch GETTYPE(_i = _argv[0]) {
 		// エラー
-		""
+		''
 
 		// 位置指定
-		var.req.value[_i];
+		var.req.value[_i]
 
 		// 位置指定（実数）　整数化して処理
 		var.req.value[TOINT(_i)]
@@ -152,16 +152,16 @@ LIB.KEY
 
 	switch GETTYPE(_i = _argv[0]) {
 		// エラー
-		""
+		''
 
 		// 位置指定
-		var.lib.key[_i];
+		var.lib.key[_i]
 
 		// 位置指定（実数）　整数化して処理
 		var.lib.key[TOINT(_i)]
 
 		// 文字列はエラー
-		""
+		''
 	}
 }
 
@@ -180,10 +180,10 @@ LIB.VALUE
 
 	switch GETTYPE(_i = _argv[0]) {
 		// エラー
-		""
+		''
 
 		// 位置指定
-		var.lib.value[_i];
+		var.lib.value[_i]
 
 		// 位置指定（実数）　整数化して処理
 		var.lib.value[TOINT(_i)]
@@ -208,9 +208,9 @@ LIB.VALUE
 //******************************************************************************
 restore_old_variables
 {
-    // ascii
-    ascii = IARRAY
-    for _i = 0; _i <= 0x7f; _i++ {
-        ascii ,= CHR(_i)
-    }
+	// ascii
+	ascii = IARRAY
+	for _i = 0; _i <= 0x7f; _i++ {
+		ascii ,= CHR(_i)
+	}
 }

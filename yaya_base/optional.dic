@@ -120,7 +120,7 @@ SHIORI3FW.IsGhostExist
 //機能　：READFMOによってFMOテーブルを作る。
 /*
 FMOはキャッシュされ、変わっていなければ解析は行われない。
-FMO名称を省略すると自動的に"Sakura"になる。
+FMO名称を省略すると自動的に'Sakura'になる。
 無視するエントリのHWNDを省略すると、SHIORI3FW.HWnd[0] 変数が利用される。
 （つまり自動的に自身の情報は含まれなくなる）
 
@@ -146,7 +146,7 @@ SHIORI3FW.RefreshFMOTable : void
 		_result=READFMO(_fmoname,'UTF-8')
 	else
 		_result=READFMO(_fmoname)
-	
+
 	if SHIORI3FW.FMOCache == _result {
 		//変わっていなければ即座に戻る
 		return
@@ -166,7 +166,7 @@ SHIORI3FW.RefreshFMOTable : void
 	_array = SPLIT(_result,C_CRLF)
 	_arraynum=ARRAYSIZE(_array)
 
-	//変数初期化	
+	//変数初期化
 	_fmotable_temp=''
 	_id=''
 	_oldid=''
@@ -184,8 +184,7 @@ SHIORI3FW.RefreshFMOTable : void
 		//一時起動ゴーストかどうか？
 		_buf=_array[_i]
 		_id=_buf[0,'.']
-		if 'SSTPVIEWER-' _in_ _id  || 'ssp_fmo_header_dummyentry' _in_ _id || 'SSSB' _in_ _id
-		{
+		if 'SSTPVIEWER-' _in_ _id  || 'ssp_fmo_header_dummyentry' _in_ _id || 'SSSB' _in_ _id{
 			//一時起動なのでなにもしない
 		}else{
 			if _oldid == '' {
@@ -205,21 +204,21 @@ SHIORI3FW.RefreshFMOTable : void
 			_kvpair=_buf[1,'.']
 			_key=_kvpair[0,C_BYTE1]
 			_val=_kvpair[1,C_BYTE1]
-			
+
 			//各値を一時保存
 			case _key {
-			when 'hwnd'		{_hwnd=_val}
-			when 'name'		{_name=_val}
-			when 'keroname'	{_keroname=_val}
-			when 'path'		{_path=_val}
-			when 'kerohwnd'	{_kerohwnd=_val}
-			when 'ghostpath'{_ghostpath=_val}
+				when 'hwnd'		{_hwnd=_val}
+				when 'name'		{_name=_val}
+				when 'keroname'	{_keroname=_val}
+				when 'path'		{_path=_val}
+				when 'kerohwnd'	{_kerohwnd=_val}
+				when 'ghostpath'{_ghostpath=_val}
 			}
 		}
 	}
 	//最後のエントリを書き出し
 	_fmotable_temp += "%(_id)|%(_name)|%(_keroname)|%(_hwnd)|%(_kerohwnd)|%(_path)|%(_ghostpath)"
-	
+
 	//無視するHWNDを取り除き、同時にSakuraNameListを作成
 	_count_temp=ARRAYSIZE(_fmotable_temp)
 	for _i=0;_i<_count_temp;_i++ {
@@ -230,7 +229,7 @@ SHIORI3FW.RefreshFMOTable : void
 			SHIORI3FW.SakuraNameList=(SHIORI3FW.SakuraNameList,_tablestr[1,'|'])
 		}
 	}
-	
+
 	//最後がカンマなら取り除く
 	if SUBSTR(SHIORI3FW.FMOTable,STRLEN(SHIORI3FW.FMOTable)-1,1)==',' {
 		SHIORI3FW.FMOTable=SUBSTR(SHIORI3FW.FMOTable,0,STRLEN(SHIORI3FW.FMOTable)-1)
@@ -257,10 +256,10 @@ SHIORI3FW.MakeLongText
 		_menuitem
 		return
 	}
-	
+
 	_space = '                                                                                    '
 	_menuitem += SUBSTR(_space,0,_len)
-	
+
 	_menuitem
 }
 
@@ -268,28 +267,28 @@ SHIORI3FW.MakeLongText
 SHIORI3FW.MakeShortText
 {
 	if _argc < 2 {
-		'';
-		return;
+		''
+		return
 	}
-	
+
 	_src = _argv[0]
 	_cut = TOINT(_argv[1])
 	_text = ''
-	
+
 	if GETSTRBYTES(_argv[0],127) <= _cut {
 		_argv[0]
-		return;
+		return
 	}
-	
+
 	_num = STRLEN(_src)
-	_lendiff = 0 //後で保存するためにスコープを一つ下げるためのダミー代入
-	
+	_lendiff = 0//後で保存するためにスコープを一つ下げるためのダミー代入
+
 	while 1 {
 		_text = SUBSTR(_argv[0],0,_num)
-		
+
 		_lendiff = _cut - GETSTRBYTES(_text,127) - 2
 		if _lendiff >= 0 {
-			break;
+			break
 		}
 		_num -= 1
 		if _num <= 0 {
@@ -297,7 +296,7 @@ SHIORI3FW.MakeShortText
 			return
 		}
 	}
-	
+
 	if _lendiff > 0 {
 		_text += '...'
 	}
@@ -311,11 +310,11 @@ SHIORI3FW.MakeShortText
 SHIORI3FW.MakeJustText
 {
 	_text = SHIORI3FW.MakeLongText(_argv[0],_argv[1])
-	if _text != _argv[0] { //短すぎた
+	if _text != _argv[0] {//短すぎた
 		_text
 		return
 	}
-	
+
 	_text = SHIORI3FW.MakeShortText(_argv[0],_argv[1])
 	_text
 }

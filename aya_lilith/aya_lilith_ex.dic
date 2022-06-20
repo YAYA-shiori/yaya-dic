@@ -58,64 +58,64 @@ OnSystemLoad.AAA_AYLEX
 	timeout_label = ''
 	entering_passive_mode = 0
 	menu_icon_head = ''
-	
+
 	AYALilithEX = 1
-	
+
 	_a = GETFUNCLIST('あやりりすEXヘッダ')
-	
+
 	AYLex_CHAR_HEADER = IARRAY
 	AYLex_CHAR_REGEX = ''
-	
+
 	AYLex_Kakko_History = IARRAY
-	
+
 	_n = ARRAYSIZE(_a)
 	for _i = 0 ; _i < _n ; _i++ {
 		_side = TOINT(ZEN2HAN(REPLACE(_a[_i],'あやりりすEXヘッダ','')))
 		_var = EVAL(_a[_i])
-		
+
 		AYLex_CHAR_HEADER[_side] = _var
 		if _i > 0 {
 			AYLex_CHAR_REGEX += '|'
 		}
 		AYLex_CHAR_REGEX += _var
 	}
-	
+
 	AYLex_DEFAULT_SURFACE = (0,10)
-	
+
 	_a = GETFUNCLIST('あやりりすEX標準表情')
-	
+
 	_n = ARRAYSIZE(_a)
 	for _i = 0 ; _i < _n ; _i++ {
 		_side = TOINT(ZEN2HAN(REPLACE(_a[_i],'あやりりすEX標準表情','')))
 		_var = TOINT(EVAL(_a[_i]))
-		
+
 		AYLex_DEFAULT_SURFACE[_side] = _var
 	}
-	
-	
+
+
 	AYLex_SakuraScript_Wait_Insert = 0
 	if ISFUNC('あやりりすEXSakuraScript文ウエイト支援') {
 		AYLex_SakuraScript_Wait_Insert = あやりりすEXSakuraScript文ウエイト支援
 	}
-	
+
 	AYLex_SakuraScript_External_Translator = ISFUNC('あやりりすEXSakuraScript外部トランスレータ')
 	AYLex_SakuraScript_Side_Translator = ISFUNC('あやりりすEXスコープトランスレータ')
-	
+
 	AYLex_surface_translate_name = 'あやりりすEXSurfaceTranslate'
 	AYLex_surface_translate_found = ISFUNC(AYLex_surface_translate_name)
-	
+
 	AYLex_balloon_translate_name = 'あやりりすEXBalloonTranslate'
 	AYLex_balloon_translate_found = ISFUNC(AYLex_balloon_translate_name)
-	
+
 	AYLex_balloon_init_name = 'あやりりすEXBalloonInit'
 	AYLex_balloon_init_found = ISFUNC(AYLex_balloon_init_name)
-	
+
 	AYLex_aylex_translate_name = 'あやりりすEXPreTranslate'
 	AYLex_aylex_translate_found = ISFUNC(AYLex_aylex_translate_name)
-	
+
 	//flagshipでつかう
 	AYLex_surface_find_pattern_char = '[0-9.,０-９．，消bｂバ]'
-	
+
 }
 
 //---- あやりりすEXデータ開放 --------------------------------------------------------------
@@ -142,10 +142,10 @@ OnSystemUnload.AAA_AYLEX
 	AYALilithEX
 	menu_icon_head
 	'>>
-	
+
 	_erasevar = RE_REPLACE(_erasevar,'[ 　\t]','')
 	ERASEVAR(SPLIT(_erasevar,C_CRLF))
-	
+
 }
 
 //---- あやりりすEXトランスレータ --------------------------------------------------------------
@@ -166,7 +166,7 @@ AYALilithEX.TextOnlyTranslator
 	_tag = RE_GETSTR()
 	_tr = ''
 	_qs = 0
-	
+
 	for _i = 0 ; _i < _n ; _i++ {
 		_tr += EVAL("%(_argv[1])(_string[_i],_qs)")
 		_tr += _tag[_i]
@@ -174,7 +174,7 @@ AYALilithEX.TextOnlyTranslator
 			_qs = ! _qs
 		}
 	}
-	
+
 	_tr
 }
 
@@ -183,12 +183,12 @@ AYALilithEX.TextOnlyTranslatorFunc
 {
 	//_argv[0] = 置換対象テキスト
 	//_argv[1] = クイックセクション内か否か
-	
+
 	_text = _argv[0]
-	
+
 	_text = REPLACE(_text,'‥','…')
 	_text = RE_REPLACE(_text,'[（(](ユーザ.*|ゆーざ.*)[)）]',AYALilithEX.UserNameFunc())
-	
+
 	if ! _argv[1] {
 		_text = RE_REPLACEEX(_text, '([、…])(?=.)', '$1\\w5')
 		_text = RE_REPLACEEX(_text, '([。！？」』])(?=[^。、！？」』])', '$1\\w9')
@@ -212,15 +212,15 @@ AYALilithEX.UserNameFunc
 ProcessSpecialSyntax
 {
 	_txt = _argv[0]
-	
-	_arr = RE_SPLIT(_txt,'\r\n[=＝]{4,}\r\n',2) //=====区切りでchain
+
+	_arr = RE_SPLIT(_txt,'\r\n[=＝]{4,}\r\n',2)//=====区切りでchain
 	if STRLEN(_arr[1]) {
 		SHIORI3FW.StartChainTalkScriptDirect(_arr[1])
 	}
-	
+
 	_txt = _arr[0]
-	
-	_arr = RE_SPLIT(_txt,'\r\n[-―ー－]{4,}\r\n') //-----区切りで複数トークRAND選択
+
+	_arr = RE_SPLIT(_txt,'\r\n[-―ー－]{4,}\r\n')//-----区切りで複数トークRAND選択
 
 	if GETTYPE(_arr) == 4 {
 		_txt = _arr[RAND(ARRAYSIZE(_arr))]
@@ -228,7 +228,7 @@ ProcessSpecialSyntax
 	else {
 		_txt = _arr
 	}
-	
+
 	ProcessAYALilithSyntax(_txt)
 }
 
@@ -239,28 +239,28 @@ ProcessAYALilithSyntaxSub
 	if TOINT(_argv[1]) == 0 {
 		_text = AYALilithEX.TextOnlyTranslator(_text,'AYALilithEX.TextOnlyTranslatorFunc')
 	}
-	
+
 	while RE_SEARCH(_text,'[(（](.+?[\|｜].+?|[HＨ][0-9０-９]+)[)）]') {
 		_p = RE_GETPOS[0]
 		_l = RE_GETLEN[0]
 		_s = RE_GETSTR[1]
-		
+
 		_x = ZEN2HAN(_s)
 
 		_text = ERASE(_text,_p,_l)
 
 		_hist = ''
-		if SUBSTR(_x,0,1) == 'H' { //履歴
+		if SUBSTR(_x,0,1) == 'H' {//履歴
 			_histnum = TOINT(SUBSTR(_x,1,9999))
 			_hist = AYLex_Kakko_History[_histnum-1]
 		}
 		else {
-			_hist = ANY(RE_SPLIT(_s,'[|｜]'));
+			_hist = ANY(RE_SPLIT(_s,'[|｜]'))
 		}
 		_text = INSERT(_text,_p,_hist)
 		AYLex_Kakko_History ,= _hist
 	}
-	
+
 	_text
 }
 
@@ -269,7 +269,7 @@ IsAYALilithEXSyntax
 {
 	_txtarray  = IARRAY
 	_txtarray ,= SPLIT(_argv[0],C_CRLF)
-	
+
 	if (ARRAYSIZE(_txtarray) <= 1) && (RE_SEARCH(_txtarray[0],'^[^\\]*(' + AYLex_CHAR_REGEX + ')[^\\]*?[｢「：]') == 0) {
 		0
 	}
@@ -283,20 +283,20 @@ ProcessAYALilithSyntax
 {
 	timeout_label = ''
 	menu_icon_head = ''
-	
+
 	AYLex_Kakko_History = IARRAY
-	
+
 	_txtarray  = IARRAY
 	_txtarray ,= SPLIT(_argv[0],C_CRLF)
-	
+
 	_script = ''
-	
+
 	if AYLex_aylex_translate_found {
 		void EVAL("_txtarray = %(AYLex_aylex_translate_name)(_txtarray)")
-		
+
 		_txtarray_b = _txtarray
 		_txtarray = IARRAY()
-		
+
 		_m = ARRAYSIZE(_txtarray_b)
 		for _j = 0 ; _j < _m ; _j++ {
 			_txtarray ,= SPLIT(_txtarray_b[_j],C_CRLF)
@@ -317,7 +317,7 @@ ProcessAYALilithSyntax
 		_script
 		return
 	}
-	
+
 	_init_script = ''
 	_talk_init = 0
 	_talk_init_side = IARRAY
@@ -335,10 +335,10 @@ ProcessAYALilithSyntax
 	_last_cond_result = 0
 	_else_cond_result = 0
 	_chain_label = ''
-	
+
 	_menu_flag = 0
 	_half_menu_flag = 0
-	
+
 	_n = ARRAYSIZE(_txtarray)
 	for _i = 0 ; _i < _n ; _i++ {
 		_txt = _txtarray[_i]
@@ -349,13 +349,13 @@ ProcessAYALilithSyntax
 				_txt = _txt_exit
 			}
 
-			if RE_SEARCH(_txt,'^[#＃]') { //＃コメント
-				; //なにもしない
+			if RE_SEARCH(_txt,'^[#＃]') {//＃コメント
+				//なにもしない
 			}
 			elseif RE_SEARCH(_txt,'^(.*?)([：＜].*?|[｢「].*?[」｣]?)$') {
 				_cmd_orig = RE_GETSTR[1]
 				_txt_orig = RE_GETSTR[2]
-				
+
 				if RE_SEARCH(_txt_orig,'^[：＜](.*)$') {
 					_txt_orig = RE_GETSTR[1]
 					_kagikakko_flag = 0
@@ -368,12 +368,12 @@ ProcessAYALilithSyntax
 					_txt_orig = RE_GETSTR[1]
 					_kagikakko_flag = 1
 				}
-				
+
 				_cmd_orig = RE_REPLACE(_cmd_orig,'【.+?】','')
 				_cond = RE_GETSTR[0]
-				
+
 				_cmd_orig = RE_REPLACE(_cmd_orig,'[　 \t]','')
-				
+
 				if STRLEN(_cond) > 0 {
 					if RE_SEARCH(_cond,'^【[　 \t]*直前.*?否定[　 \t]*?】$') {
 						_cond_result = (_last_cond_result == 0)
@@ -387,7 +387,7 @@ ProcessAYALilithSyntax
 					else {
 						_last_cond_result = ProcessAYALilithCondBranch(_cond)
 						_cond_result = _last_cond_result
-						
+
 						if _last_cond_result {
 							_else_cond_result = 1
 						}
@@ -397,31 +397,31 @@ ProcessAYALilithSyntax
 					_cond_result = 1
 					_else_cond_result = 0
 				}
-				
+
 				//条件分岐ONならGO (からっぽの場合含む)
 				if _cond_result {
-					if RE_SEARCH(_cmd_orig,'^[@＠](.*?)スクリプト') { //＠スクリプト：ほげほげ -> スクリプトそのまま出力
+					if RE_SEARCH(_cmd_orig,'^[@＠](.*?)スクリプト') {//＠スクリプト：ほげほげ -> スクリプトそのまま出力
 						_script += _txt_orig
 					}
-					elseif RE_SEARCH(_cmd_orig,'^[@＠](.*?)メニューアイコン(.*?)$') { //＠メニューアイコン：ほげほげ
+					elseif RE_SEARCH(_cmd_orig,'^[@＠](.*?)メニューアイコン(.*?)$') {//＠メニューアイコン：ほげほげ
 						メニューアイコン設定(_txt_orig)
 					}
-					elseif RE_SEARCH(_cmd_orig,'^[@＠](.*?)メニュー(.*?)$') { //＠メニュー：ほげほげ
+					elseif RE_SEARCH(_cmd_orig,'^[@＠](.*?)メニュー(.*?)$') {//＠メニュー：ほげほげ
 						_cmd = RE_REPLACE(RE_GETSTR[1] + RE_GETSTR[2],'[　 \t]','')
 						_txt = _txt_orig
-						
+
 						if _menu_flag == 0 {
 							if _quick == 0 {
 								_script += '\_q'
 							}
 							_script += '\_n'
 							if TOINT(_talk_done_side[_side]) != 0 {
-								_script += '\n[half]' //\nは後で入る
+								_script += '\n[half]'//\nは後で入る
 							}
 						}
-						
+
 						_menu_array = RE_SPLIT(_txt,'[|｜]')
-						
+
 						if '半分' _in_ _cmd {
 							if _half_menu_flag <= 0 {
 								_script += 半分メニュー開始()
@@ -466,9 +466,9 @@ ProcessAYALilithSyntax
 						_talk_done_side[_side] = 1
 						_menu_flag = 1
 					}
-					elseif RE_SEARCH(_cmd_orig,'^[#＃@＠]設定') { //＠設定：ほげほげ
+					elseif RE_SEARCH(_cmd_orig,'^[#＃@＠]設定') {//＠設定：ほげほげ
 						_txt = RE_REPLACE(_txt_orig,'[　 \t]','')
-						
+
 						if 'クイック' _in_ _txt {
 							if _quick == 0 {
 								_quick = 1
@@ -485,7 +485,7 @@ ProcessAYALilithSyntax
 								_script += '\_q'
 							}
 						}
-						
+
 						if '受動モード' _in_ _txt || 'パッシブモード' _in_ _txt {
 							_passive_set = 1
 							if entering_passive_mode == 0 {
@@ -493,11 +493,11 @@ ProcessAYALilithSyntax
 								entering_passive_mode = 1
 							}
 						}
-						
+
 						if 'タイムクリ' _in_ _txt {
 							_script += '\t'
 						}
-						
+
 						if RE_MATCH(_txt,'タイムアウト([0-9０-９]*)[｢「：](.+?)[」｣]?') {
 							timeout_label = RE_GETSTR[2]
 							if RE_GETSTR[1] != '' {
@@ -520,16 +520,16 @@ ProcessAYALilithSyntax
 							_script += '\_n'
 							_menu_flag = 0
 						}
-						
+
 						_main = _txt_orig
 						_cmd = _cmd_orig
-						
+
 						_cmd_wait = _cmd
 						_cmd = REPLACE(_cmd,'待ち無し','')
 						_cmd = REPLACE(_cmd,'待ちなし','')
 						_cmd = REPLACE(_cmd,'待無','')
 						_cmd_wait = (_cmd != _cmd_wait)
-						
+
 						_cmd_waitzero = _cmd
 						_cmd = REPLACE(_cmd,'待ちゼロ','')
 						_cmd = REPLACE(_cmd,'待０','')
@@ -540,47 +540,47 @@ ProcessAYALilithSyntax
 						_cmd = REPLACE(_cmd,'待ち多目','')
 						_cmd = REPLACE(_cmd,'待多','')
 						_cmd_morewait = (_cmd != _cmd_morewait)
-						
+
 						_cmd_line = _cmd
 						_cmd = REPLACE(_cmd,'改行無し','')
 						_cmd = REPLACE(_cmd,'改行なし','')
 						_cmd = REPLACE(_cmd,'改無','')
 						_cmd_line = (_cmd != _cmd_line)
-						
+
 						_cmd_moreline = _cmd
 						_cmd = REPLACE(_cmd,'改行多め','')
 						_cmd = REPLACE(_cmd,'改行多目','')
 						_cmd = REPLACE(_cmd,'改多','')
 						_cmd_moreline = (_cmd != _cmd_moreline)
-						
+
 						_cmd_click = _cmd
 						_cmd = REPLACE(_cmd,'クリック待ち','')
 						_cmd_click = (_cmd != _cmd_click)
-						
+
 						_cmd_before = _cmd
 						_cmd = REPLACE(_cmd,'改行前','')
 						_cmd_before = (_cmd != _cmd_before)
-						
+
 						_cmd_double = _cmd
 						_cmd = REPLACE(_cmd,'二人','')
 						_cmd_double = (_cmd != _cmd_double)
-						
+
 						_cmd_sync = _cmd
 						_cmd = REPLACE(_cmd,'同時','')
 						_cmd_sync = (_cmd != _cmd_sync)
-						
+
 						_cmd_font_big = _cmd
 						_cmd = REPLACE(_cmd,'フォント大','')
 						_cmd_font_big = (_cmd != _cmd_font_big)
-						
+
 						_cmd_font_small = _cmd
 						_cmd = REPLACE(_cmd,'フォント小','')
 						_cmd_font_small = (_cmd != _cmd_font_small)
-						
+
 						_side_change = ''
 						_side_wait = ''
 						_side_wait_short = ''
-						
+
 						if _talk_init != 0 {
 							if _cmd_click {
 								_talk_done_side = IARRAY
@@ -591,19 +591,19 @@ ProcessAYALilithSyntax
 							}
 							elseif _quick == 0 {
 								if _cmd_waitzero {
-									; //NOOP
+									//NOOP
 								}
-								elseif _cmd_wait { //待ち無し
-									_side_wait += "\w3"
-									_side_wait_short += "\w2"
+								elseif _cmd_wait {//待ち無し
+									_side_wait += '\w3'
+									_side_wait_short += '\w2'
 								}
-								elseif _cmd_morewait { //待ち多め
-									_side_wait += "\w9\w9\w9\w9"
-									_side_wait_short += "\w9\w9"
+								elseif _cmd_morewait {//待ち多め
+									_side_wait += '\w9\w9\w9\w9'
+									_side_wait_short += '\w9\w9'
 								}
-								else { //待ち普通
-									_side_wait += "\w9\w9"
-									_side_wait_short += "\w9"
+								else {//待ち普通
+									_side_wait += '\w9\w9'
+									_side_wait_short += '\w9'
 								}
 							}
 						}
@@ -617,10 +617,10 @@ ProcessAYALilithSyntax
 
 						_surface_defined_flag = 0
 						_side_command = IARRAY
-						
+
 						while 1 {
 							_pattern_found = 0
-							
+
 							_patnum = ARRAYSIZE(AYLex_CHAR_HEADER)
 							for _pat = 0 ; _pat < _patnum ; _pat++ {
 								if STRLEN(AYLex_CHAR_HEADER[_pat]) {
@@ -631,14 +631,14 @@ ProcessAYALilithSyntax
 
 										_cmd = ERASE(_cmd,0,RE_GETLEN[0])
 										_side_change += AYLex_Get_Side_Script(_side)
-										
+
 										_spat = RE_GETSTR[1]
 										_spat_process = ProcessAYALilithSurfaceDef(_spat,_side)
-										
+
 										if _spat_process != '' {
 											_talk_init_side[_side] = 1
 											_surface_defined_flag = 1
-											
+
 											_side_change += _spat_process
 										}
 									}
@@ -652,26 +652,26 @@ ProcessAYALilithSyntax
 								break
 							}
 						}
-						
+
 						_cmd_surface = _cmd
 						_cmd = RE_REPLACE(_cmd,"(%(AYLex_surface_find_pattern_char)+)",'')
 						_cmd_surface = (_cmd != _cmd_surface)
-						
+
 						if _cmd_surface {
 							_spat = RE_GETSTR[0]
 							_spat_process = ProcessAYALilithSurfaceDef(_spat,_side)
-							
+
 							if _spat_process != '' {
 								_talk_init_side[_side] = 1
 								_surface_defined_flag = 1
-								
+
 								_side_change += _spat_process
 							}
 						}
-						
-						
+
+
 						_talk = ProcessAYALilithSyntaxSub(_main,_quick)
-						
+
 						//----------Sync-------------
 						if _cmd_sync || _cmd_double {
 							_side_changed_flag = 1
@@ -690,17 +690,17 @@ ProcessAYALilithSyntax
 									_side_change += '\_s'
 								}
 							}
-							
+
 							foreach _sync ; _s {
 								_side_change_before = AYLex_Get_Side_Script(_s)
 								if TOINT(_talk_done_side[_s]) != 0 {
 									if _cmd_line == 0 {
 										if STRSTR(_side_change_before,'\c',0) < 0 {
 											if _cmd_moreline {
-												_side_change_before += "\n\n"
+												_side_change_before += '\n\n'
 											}
 											else {
-												_side_change_before += "\n\n[half]"
+												_side_change_before += '\n\n[half]'
 											}
 										}
 									}
@@ -723,18 +723,18 @@ ProcessAYALilithSyntax
 									if STRSTR(_side_change,'\c',0) < 0 {
 										if _side_changed_flag {
 											if _cmd_moreline {
-												_side_change += "\n\n"
+												_side_change += '\n\n'
 											}
 											else {
-												_side_change += "\n\n[half]"
+												_side_change += '\n\n[half]'
 											}
 										}
 										else {
 											if _cmd_moreline {
-												_side_change += "\n\n[half]"
+												_side_change += '\n\n[half]'
 											}
 											else {
-												_side_change += "\n"
+												_side_change += '\n'
 											}
 										}
 									}
@@ -748,9 +748,9 @@ ProcessAYALilithSyntax
 								}
 							}
 						}
-						
+
 						_side_old = _side
-						
+
 						if _talk_init == 0 {
 							if TOINT(_talk_init_side[0]) == 0 {
 								_surface = AYLex_DEFAULT_SURFACE_Func(0)
@@ -765,11 +765,11 @@ ProcessAYALilithSyntax
 								}
 							}
 						}
-						
+
 						if (_surface_defined_flag == 0) && (_side_changed_flag == 0) {
 							_side_wait = _side_wait_short
 						}
-						
+
 						if _cmd_before {
 							_script += _side_change
 							_script += _side_wait
@@ -778,10 +778,10 @@ ProcessAYALilithSyntax
 							_script += _side_wait
 							_script += _side_change
 						}
-						
+
 						if _talk != '' {
 							_talk_done_side[_side] = 1
-							
+
 							if _cmd_font_big {
 								_script += '\f[height,20]\f[bold,true]' + _talk + '\f[bold,default]\f[height,default]'
 							}
@@ -792,20 +792,20 @@ ProcessAYALilithSyntax
 								_script += _talk
 							}
 						}
-						
+
 						if ARRAYSIZE(_sync) {
 							_script += '\_s'
 						}
-						
+
 						_talk_init = 1
 					}
 				}
 			}
 			else {
 				_else_cond_result = 0
-				
+
 				if _quick == 0 {
-					_script += "\w9"
+					_script += '\w9'
 				}
 				if _kagikakko_flag {
 					if RE_SEARCH(_txt,'^(.+?)[」｣]$') {
@@ -813,24 +813,24 @@ ProcessAYALilithSyntax
 						_kagikakko_flag = 0
 					}
 				}
-				_script += "\n";
+				_script += '\n'
 				_script += ProcessAYALilithSyntaxSub(_txt,_quick)
 			}
-			
+
 			if entering_passive_mode != 0 {
 				if _passive_set == 0 {
 					_script += '\![leave,passivemode]'
 					entering_passive_mode = 0
 				}
 			}
-			
+
 		}
 	}
 
 	if _is_exit {
-		_script += "\w9\-";
+		_script += '\w9\-'
 	}
-	
+
 	if _timeout_value {
 		_script = "\![set,balloontimeout,%(_timeout_value)]\![set,choicetimeout,%(_timeout_value)]" + _script
 	}
@@ -849,14 +849,14 @@ ProcessAYALilithSurfaceDef
 {
 	_spat = _argv[0]
 	_side = _argv[1]
-	
+
 	_spat_a = RE_SPLIT(_spat,'[.．,，bｂバ]',3)
 	_spat_s = RE_GETSTR()
-	
+
 	_side_change = ''
-	
+
 	if '消' _in_ _spat_a[0] {
-		_side_change += "\s[-1]"
+		_side_change += '\s[-1]'
 	}
 	elseif _spat_a[0] != '' {
 		_surface = TOINT(ZEN2HAN(_spat_a[0]))
@@ -868,12 +868,12 @@ ProcessAYALilithSurfaceDef
 		}
 		_side_change += "\s[%(_surface)]"
 	}
-	
+
 	for _k = 1 ; _k < 3 ; _k++ {
 		if _spat_a[_k] != '' {
 			if RE_MATCH(_spat_s[_k-1],'[bｂバ]') {
 				if '消' _in_ _spat_a[_k] {
-					_side_change += "\b[-1]"
+					_side_change += '\b[-1]'
 				}
 				elseif _spat_a[_k] != '' {
 					_side_change += "\b[%(TOINT(ZEN2HAN(_spat_a[_k])))]"
@@ -886,7 +886,7 @@ ProcessAYALilithSurfaceDef
 			}
 		}
 	}
-	
+
 	_side_change
 }
 
@@ -895,12 +895,12 @@ ProcessAYALilithCondBranch
 {
 	_t = _argv[0]
 	_t = RE_REPLACE(_t,'[【】]','')
-	
+
 	if STRLEN(_t) == 0 {
 		1
 		return
 	}
-	
+
 	_t = ReplaceAbbrevSyntax(_t,'[RＲ]','reference')
 	_t = ReplaceAbbrevSyntax(_t,'[AＡ]','_argv')
 
@@ -917,19 +917,19 @@ ReplaceAbbrevSyntax
 {
 	_ta = RE_SPLIT(_argv[0],_argv[1] + '[0-9０-９]+')
 	_tr = RE_GETSTR()
-	
+
 	_n = ARRAYSIZE(_ta)
 	_t = _ta[0]
-	
+
 	_res = ''
 	for _i = 1 ; _i < _n ; _i++ {
 		_res = _tr[_i-1]
 		_res = RE_REPLACE(_res,_argv[1],'')
-		
+
 		_res = _argv[2] + '[' + TOINT(ZEN2HAN(_res)) + ']'
-		
+
 		_t += _res
-		
+
 		_t += _ta[_i]
 	}
 	_t
@@ -968,10 +968,10 @@ HTMLエスケープ
 //アイコン設定
 メニューアイコン設定
 {
- 	if '標準' _in_ _argv[0] {
- 		menu_icon_head = ''
- 	}
- 	else {
+	if '標準' _in_ _argv[0] {
+		menu_icon_head = ''
+	}
+	else {
 		menu_icon_head = _argv[0]
 	}
 }
@@ -1029,7 +1029,7 @@ HTMLエスケープ
 		メニュー(_argv) + '\n'
 		return
 	}
-	
+
 	if (half_menu_counter % 2) == 0 {
 		if half_menu_counter != 0 {
 			'\n'
@@ -1070,12 +1070,12 @@ AYLex_DEFAULT_SURFACE_Func
 AYLex_Get_Side_Script
 {
 	_side = _argv[0]
-	
+
 	if ( AYLex_SakuraScript_Side_Translator ) {
 		EVAL('あやりりすEXスコープトランスレータ(_side)')
 		return
 	}
-	
+
 	if _side < 2 {
 		"\%(_side)"
 	}
