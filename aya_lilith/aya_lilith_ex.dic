@@ -908,8 +908,7 @@ ProcessAYALilithCondBranch
 		TOINT(EVAL(_t)) != 0
 	}
 	else {
-		SHIORI3FW.PushAdditionalReturn('ErrorLevel','warning')
-		SHIORI3FW.PushAdditionalReturn('ErrorDescription','式が評価できません: ' + _argv[0])
+		SHIORI3FW.PushErrorAlart('warning','式が評価できません: ' + _argv[0])
 		0
 	}
 }

@@ -557,8 +557,7 @@ OnRequest
 		if SHIORI3FW.LastErrorDescription != SHIORI3FW.ErrorDescription {
 			SHIORI3FW.LastErrorDescription = SHIORI3FW.ErrorDescription
 			
-			SHIORI3FW.PushAdditionalReturn('ErrorLevel',SHIORI3FW.ErrorLevel)
-			SHIORI3FW.PushAdditionalReturn('ErrorDescription',SHIORI3FW.ErrorDescription)
+			SHIORI3FW.PushErrorAlart(SHIORI3FW.ErrorLevel,SHIORI3FW.ErrorDescription)
 		}
 	}
 
@@ -572,6 +571,16 @@ OnRequest
 	--
 	C_CRLF
 }
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.PushErrorAlart
+//機能　：Push Error Alart
+//------------------------------------------------------------------------------
+SHIORI3FW.PushErrorAlart{
+	SHIORI3FW.PushAdditionalReturn('ErrorLevel',_argv[0])
+	SHIORI3FW.PushAdditionalReturn('ErrorDescription',_argv[1])
+}
+
 
 //------------------------------------------------------------------------------
 //関数名：SHIORI3FW.GetLastErrorLog
