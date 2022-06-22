@@ -1677,12 +1677,6 @@ AVERAGE
 //******************************************************************************
 // システムで処理するイベント群
 //******************************************************************************
-SHIORI3EV.OnUpdateReady : void
-{
-	// OnUpdateReadyならロード中のSAORIをすべてunloadする
-	SHIORI3FW.SaoriUnloadAll
-}
-
 SHIORI3EV.OnUpdateComplete : void
 {
 	// OnUpdateCompleteならdl2を探す。存在したら同名のdllを削除、dl2はdllにリネームする
