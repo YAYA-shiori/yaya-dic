@@ -746,6 +746,11 @@ SHIORI3FW.AssembleReferenceHeader
 				ERASEVAR('res_marker')
 			}
 		}
+
+		if res_securitylevel != '' {
+			_result += "SecurityLevel: %(res_securitylevel)%(C_CRLF)"
+			ERASEVAR('res_securitylevel')
+		}
 	}
 
 	if res_valuenotify != '' {
