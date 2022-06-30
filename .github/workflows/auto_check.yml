@@ -14,6 +14,9 @@ jobs:
         run: |
              aria2c https://github.com/ponapalt/yaya-shiori/releases/latest/download/yaya.zip
              7z x yaya.zip -tzip
+      - name: use yaya.txt in files
+        run: |
+             MOVE .github\workflows\files\yaya.txt .\yaya.txt
       - name: shiori-check
         uses: Taromati2/yaya-CI-check@v1
         with:
