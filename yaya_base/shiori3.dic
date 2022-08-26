@@ -1920,7 +1920,7 @@ day     { GETTIME[2] }
 weekday { GETTIME[3] }
 hour    { GETTIME[4] }
 ampm    { if hour >= 12; 1;   else; 0    }
-hour12  { if ampm; hour - 12; else; hour }
+hour12  { if hour == 0 || hour == 12; 12; elseif ampm; hour - 12; else; hour }
 minute  { GETTIME[5] }
 second  { GETTIME[6] }
 
