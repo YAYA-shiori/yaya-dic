@@ -1,5 +1,4 @@
-on:
-  push
+on: [push,pull_request]
 
 name: auto check
 
@@ -18,6 +17,6 @@ jobs:
         run: |
              MOVE .github\workflows\files\yaya.txt .\yaya.txt
       - name: shiori-check
-        uses: Taromati2/yaya-CI-check@v1
+        uses: YAYA-shiori/yaya-CI-check@v1
         with:
           shiori-path: .\yaya.dll
