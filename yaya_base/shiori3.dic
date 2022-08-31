@@ -849,10 +849,6 @@ SHIORI3FW.RaiseIDEvent
 				SHIORI3FW.Status = 'Run'
 			}
 			SHIORI3FW.LastTalk = _talk[0]
-			if _event == 'OnAITalkNewEvent' {
-				SHIORI3FW.LastAITalk = _talk[0]
-				SHIORI3FW.ResetAITalkInterval()
-			}
 			if 'Surface' !_in_ _event {
 				if SHIORI3FW.RemoveAllTags(_talk[0]) != '' {
 					SHIORI3FW.LastTalkTime = GETSECCOUNT()
@@ -860,6 +856,10 @@ SHIORI3FW.RaiseIDEvent
 			}
 			_talk[0]
 		}
+	}
+	if _event == 'OnAITalkNewEvent' {
+		SHIORI3FW.LastAITalk = _talk[0]
+		SHIORI3FW.ResetAITalkInterval()
 	}
 
 	// reference&PassThru_Ins 変数をクリア
