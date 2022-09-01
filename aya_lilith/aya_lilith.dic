@@ -575,10 +575,8 @@ OnGhostEventTranslate.AYL
 
 関数名付加調整
 {
-	_arg0 = _argv[0]
-	_arg1 = _argv[1]
 	if _argc < 2 {
-		_arg1 = -1
+		_argv[1] = -1
 	}
 
 	if ISFUNC('モード処理') {
@@ -617,7 +615,7 @@ OnGhostEventTranslate.AYL
 
 	_n = ARRAYSIZE(_a)
 	for _i = 0 ; _i < _n ; _i++ {
-		_scope = _a[_i]
+		//_scope = _a[_i]
 		void EVAL('_fname = "' + _fname_orig + '"')
 		_fname = 関数名付加調整(_fname)
 		if ISFUNC(_fname) {
@@ -1874,8 +1872,6 @@ MouseEventExecFromEventName
 MouseEventExec
 {
 	マウスイベントキャラID = TOINT(reference[3])
-
-	_fname = ''
 
 	_m = TOINT(reference[5])
 
