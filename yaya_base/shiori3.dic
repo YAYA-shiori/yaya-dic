@@ -902,8 +902,8 @@ SHIORI3FW.MakeEmptyResponse
 //------------------------------------------------------------------------------
 SHIORI3FW.ResetAITalkInterval
 {
+	SHIORI3FW.LastAITalkTime = GETSECCOUNT()
 	if _argv[0] != 0 {
-		SHIORI3FW.LastAITalkTime = GETSECCOUNT()
 		SHIORI3FW.IsSurfaceRestoreComplete = 0
 	}
 	SHIORI3FW.IsAITalkComplete = 0
