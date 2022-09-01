@@ -163,7 +163,7 @@ AYALilithEX.TextOnlyTranslator
 {
 	_string = RE_SPLIT(_argv[0],'\\(\\|q\[.*?\]\[.*?\]|[!&8cfijmpqsn]\[.*?\]|[-*+014567bcehntuvxz]|_[ablmsuvw]\[.*?\]|__(t|[qw]\[.*?\])|_[!?+nqsV]|[sipw][0-9])')
 	_n = ARRAYSIZE(_string)
-	_tag = RE_GETSTR()
+	_tag = RE_GETSTR
 	_tr = ''
 	_qs = 0
 
@@ -187,7 +187,7 @@ AYALilithEX.TextOnlyTranslatorFunc
 	_text = _argv[0]
 
 	_text = REPLACE(_text,'‥','…')
-	_text = RE_REPLACE(_text,'[（(](ユーザ.*|ゆーざ.*)[)）]',AYALilithEX.UserNameFunc())
+	_text = RE_REPLACE(_text,'[（(](ユーザ.*|ゆーざ.*)[)）]',AYALilithEX.UserNameFunc)
 
 	if ! _argv[1] {
 		_text = RE_REPLACEEX(_text, '([、…])(?=.)', '$1\\w5')
@@ -295,7 +295,7 @@ ProcessAYALilithSyntax
 		void EVAL("_txtarray = %(AYLex_aylex_translate_name)(_txtarray)")
 
 		_txtarray_b = _txtarray
-		_txtarray = IARRAY()
+		_txtarray = IARRAY
 
 		_m = ARRAYSIZE(_txtarray_b)
 		for _j = 0 ; _j < _m ; _j++ {
@@ -424,7 +424,7 @@ ProcessAYALilithSyntax
 
 						if '半分' _in_ _cmd {
 							if _half_menu_flag <= 0 {
-								_script += 半分メニュー開始()
+								_script += 半分メニュー開始
 								if _half_menu_flag == 0 {
 									_script += '\n'
 								}
@@ -433,7 +433,7 @@ ProcessAYALilithSyntax
 							}
 							else {
 								if '終了' _in_ _cmd {
-									_script += 半分メニュー終了()
+									_script += 半分メニュー終了
 									_half_menu_flag = -1
 								}
 								else {
@@ -443,7 +443,7 @@ ProcessAYALilithSyntax
 						}
 						else {
 							if _half_menu_flag > 0 {
-								_script += 半分メニュー終了()
+								_script += 半分メニュー終了
 								_half_menu_flag = 0
 							}
 							else {
@@ -510,7 +510,7 @@ ProcessAYALilithSyntax
 					}
 					else {
 						if _half_menu_flag > 0 {
-							_script += 半分メニュー終了()
+							_script += 半分メニュー終了
 							_half_menu_flag = 0
 						}
 						if _menu_flag {
@@ -851,7 +851,7 @@ ProcessAYALilithSurfaceDef
 	_side = _argv[1]
 
 	_spat_a = RE_SPLIT(_spat,'[.．,，bｂバ]',3)
-	_spat_s = RE_GETSTR()
+	_spat_s = RE_GETSTR
 
 	_side_change = ''
 
@@ -916,7 +916,7 @@ ProcessAYALilithCondBranch
 ReplaceAbbrevSyntax
 {
 	_ta = RE_SPLIT(_argv[0],_argv[1] + '[0-9０-９]+')
-	_tr = RE_GETSTR()
+	_tr = RE_GETSTR
 
 	_n = ARRAYSIZE(_ta)
 	_t = _ta[0]

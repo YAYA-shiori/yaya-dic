@@ -27,7 +27,7 @@ OnSystemLoad.ﾟAYALILITH : void//ﾟはソート順序を最後にするため
 	}
 
 	if username == '' {
-		username = 名前入力初期WRAP()
+		username = 名前入力初期WRAP
 	}
 
 	mousedown_time = -1
@@ -47,7 +47,7 @@ OnSystemLoad.ﾟAYALILITH : void//ﾟはソート順序を最後にするため
 	着せ替え有効カテゴリリストEX = IARRAY
 
 	モード = ''
-	現在の日 = GETTIME()[2]
+	現在の日 = GETTIME[2]
 
 	_ft = <<'
 	OnChoiceSelect
@@ -173,7 +173,7 @@ AYL_OnTextDrop
 
 累積起動時間
 {
-	ghostupmin_total() / 60
+	ghostupmin_total / 60
 }
 
 累積起動回数
@@ -210,7 +210,7 @@ AYL_OnSecondChange
 
 	//ホールド
 	if ARRAYSIZE(mousedown_reference_array) && (mousedown_exec_complete == 0) {
-		if (GETTICKCOUNT() - mousedown_time) > 1000 {
+		if (GETTICKCOUNT - mousedown_time) > 1000 {
 			//いったんreferenceを仮保存し、擬似マウスイベントに(MouseDownのreferenceを上書き)
 			_r = reference
 			reference = mousedown_reference_array
@@ -318,7 +318,7 @@ AYLXX_Debug_Menu_Exec
 
 OnAYLXX_Debug_切替先リストを書き出し
 {
-	_a = GETFUNCLIST()
+	_a = GETFUNCLIST
 	_x = RE_ASEARCHEX('(?<!自分)(?<!他のゴースト)(?<!その他)へ変更$',_a)
 
 	ayl_gn_list = IARRAY
@@ -372,7 +372,7 @@ OnAYLXXWriteChangeList3
 OnAYLXXWriteChangeList4
 {
 	void RE_SEARCH(GETSETTING('coreinfo.path'),'\\([^\\]+)\\ghost\\master\\')
-	_folder_name = RE_GETSTR()[1]
+	_folder_name = RE_GETSTR[1]
 
 	_fullname = reference
 
@@ -386,7 +386,7 @@ OnAYLXXWriteChangeList4
 
 	_q = '"'
 
-	_gt = GETTIME()
+	_gt = GETTIME
 	_s = STRFORM('$04d/$02d/$02d $02d:$02d:$02d',_gt[0],_gt[1],_gt[2],_gt[4],_gt[5],_gt[6])
 
 	void FWRITE(_filename,"<p class=%(_q)ghostchange%(_q)>%(_s)現在の切替リスト<br />このリストは、ゴーストテンプレート<a href=%(_q)http://ms.shillest.net/yayalilith.xhtml%(_q)>「あやりりす」</a>の開発用機能により、自動生成されています。</p>")
@@ -468,7 +468,7 @@ AYL_OnMinuteChange
 		}
 	}
 
-	_t = GETTIME()
+	_t = GETTIME
 
 	if _t[5] == 0 {
 		if 現在の日 != _t[2] {
@@ -540,7 +540,7 @@ AYL_DateInit
 		return
 	}
 
-	_a1 = GETTIME()
+	_a1 = GETTIME
 	_d1 = JOIN(_a1[1],_a1[2],',')
 
 	_a2 = SPLIT(SHIORI3FW.UserBirthday,',')
@@ -608,7 +608,7 @@ OnGhostEventTranslate.AYL
 	_fname_orig = TOSTR(_argv[0])
 	_scope_orig = TOINT(_argv[1])
 
-	_a = IARRAY()
+	_a = IARRAY
 	if ISFUNC('スコープ変換') {
 		_a ,= EVAL('スコープ変換(_scope_orig)')
 	}
@@ -782,7 +782,7 @@ HTMLエスケープ
 //通常メニュー
 メニュー
 {
-	メニューアイコン() + '\q['
+	メニューアイコン + '\q['
 	--
 	エスケープ( SHIORI3FW.MakeJustText(_argv[0],46) )
 	--
@@ -829,7 +829,7 @@ HTMLエスケープ
 		}
 	}
 	--
-	メニューアイコン() + '\q['
+	メニューアイコン + '\q['
 	--
 	エスケープ( SHIORI3FW.MakeJustText(_argv[0],21) )
 	--
@@ -878,13 +878,13 @@ DelayedTalkEval
 GetCurrentEto
 {
 	_e = ('子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥')
-	_y = GETTIME()[0]
+	_y = GETTIME[0]
 	_e[(_y+8) % 12]
 }
 
 GetEvalTalkArray
 {
-	_t = GETTIME()
+	_t = GETTIME
 	_y = _t[0]
 	_m = _t[1]
 	_d = _t[2]
@@ -947,7 +947,7 @@ GetEvalTalkArray
 			_slots ,= 'ユーザー誕生日'
 		}
 		//?月?日
-		_slots ,= "%(GetCurrentEto())年%(_m)月%(_d)日"
+		_slots ,= "%(GetCurrentEto)年%(_m)月%(_d)日"
 		_slots ,= "%(_y)年%(_m)月%(_d)日"
 		_slots ,= "%(_m)月%(_d)日"
 		//?月第?週日曜,月曜...
@@ -1030,13 +1030,13 @@ GetCloseSharedScript
 
 ランダムトーク実行
 {
-	RandomTalk()
+	RandomTalk
 }
 
 RandomTalk
 {
 	//高速ランダムトーク処理用
-	_vf = DelayedTalkEval(RandomTalkEx())
+	_vf = DelayedTalkEval(RandomTalkEx)
 
 	if ISFUNC('RandomTalk_AfterDo') {
 		_vf2 = EVAL('RandomTalk_AfterDo(_vf)')
@@ -1898,7 +1898,7 @@ MouseEventExec
 	_col_id = MouseEventExecFromEventName(_head)
 	if _col_id >= 0 {
 		_col_id += TOINT(reference[3])*10
-		if ((GETTICKCOUNT() - mouseevent_time[_col_id]) < 3000) && (mouseevent_colname[_col_id] == _colname) {
+		if ((GETTICKCOUNT - mouseevent_time[_col_id]) < 3000) && (mouseevent_colname[_col_id] == _colname) {
 			mouseevent_count[_col_id] += 1
 		}
 		else {
@@ -1908,7 +1908,7 @@ MouseEventExec
 	}
 
 	マウスイベント連続回数 = mouseevent_count[_col_id]
-	mouseevent_time[_col_id] = GETTICKCOUNT()
+	mouseevent_time[_col_id] = GETTICKCOUNT
 
 	_result = -1
 	if 'talking' _in_ status {
@@ -1919,8 +1919,8 @@ MouseEventExec
 	}
 
 	if _result != -1 {
-		MouseEventTimeReset()
-		SHIORI3FW.ResetAITalkInterval()
+		MouseEventTimeReset
+		SHIORI3FW.ResetAITalkInterval
 		_result
 		return
 	}
@@ -2052,7 +2052,7 @@ AYL_MouseHoldEndExec
 		SHIORI3FW.SetDelayEvent('OnAYLMouseHoldEndExecDelay',2)
 	}
 	else {
-		OnAYLMouseHoldEndExecDelay()
+		OnAYLMouseHoldEndExecDelay
 	}
 }
 
@@ -2070,7 +2070,7 @@ OnAYLMouseHoldEndExecDelay
 AYL_OnMouseDragEnd
 {
 	if mousedown_exec_complete {
-		AYL_MouseHoldEndExec()
+		AYL_MouseHoldEndExec
 	}
 	else {
 		MouseEventExec('ドラッグ終了',AYL_drag_start_col)
@@ -2083,7 +2083,7 @@ AYL_OnMouseDown
 	if TOINT(reference[5]) == 0 {
 		//ホールド計測開始
 		mousedown_reference_array = reference
-		mousedown_time = GETTICKCOUNT()
+		mousedown_time = GETTICKCOUNT
 		mousedown_exec_complete = 0
 	}
 }
@@ -2091,7 +2091,7 @@ AYL_OnMouseDown
 AYL_OnMouseUp
 {
 	if mousedown_exec_complete {
-		AYL_MouseHoldEndExec()
+		AYL_MouseHoldEndExec
 	}
 	else {
 		//ホールド解除
@@ -2359,7 +2359,7 @@ AYL_OnNotifyUserInfo : void
 		void EVAL('OnNotifyUserInfo')
 	}
 
-	AYL_DateInit()
+	AYL_DateInit
 }
 
 AYL_OnDisplayChange : void
@@ -2409,19 +2409,19 @@ AYL_OnDisplayChange : void
 //---- 本体側ポータルサイトのリスト -----------------------------------------------------
 AYL_On_sakura.portalsites
 {
-	あやりりす_LinkMenuConvert(ポータルサイト())
+	あやりりす_LinkMenuConvert(ポータルサイト)
 }
 
 //---- 本体側おすすめサイトのリスト -----------------------------------------------------
 AYL_On_sakura.recommendsites
 {
-	あやりりす_LinkMenuConvert(おすすめ0())
+	あやりりす_LinkMenuConvert(おすすめ0)
 }
 
 //---- kero側おすすめサイトのリスト -----------------------------------------------------
 AYL_On_kero.recommendsites
 {
-	あやりりす_LinkMenuConvert(おすすめ1())
+	あやりりす_LinkMenuConvert(おすすめ1)
 }
 
 AYL_OnRecommendsiteChoice
@@ -2513,7 +2513,7 @@ AYL_On_balloon_tooltip
 ----------------------------------------------------------------------------------*/
 ゴースト起動時間
 {
-	ghostupmin_total()
+	ghostupmin_total
 }
 
 
@@ -2604,7 +2604,7 @@ AYL_AppendToScriptTail
 }
 名前入力初期名称判定
 {
-	if username == 名前入力初期WRAP() {
+	if username == 名前入力初期WRAP {
 		1
 	}
 	else {
@@ -2641,7 +2641,7 @@ OnInputNameInXTNDAYL
 			_script = AYL_AppendToScriptTail(_script,_append)
 		}
 		else {
-			username = 名前入力初期WRAP()
+			username = 名前入力初期WRAP
 		}
 
 		_script
@@ -2650,7 +2650,7 @@ OnInputNameInXTNDAYL
 
 	_kflag = 0
 	if ( 敬称探索(reference[0]) ) {
-		if ( 敬称削除(reference[0]) + 名前入力敬称WRAP() ) == reference[0] {
+		if ( 敬称削除(reference[0]) + 名前入力敬称WRAP ) == reference[0] {
 			reference[0] = 敬称削除(reference[0])
 		}
 		else {
@@ -2659,9 +2659,9 @@ OnInputNameInXTNDAYL
 	}
 
 	username_saved = さくらスクリプト無効化(reference[0])
-	username_new = 敬称削除(username_saved) + 名前入力敬称WRAP()
+	username_new = 敬称削除(username_saved) + 名前入力敬称WRAP
 
-	if username_saved == 名前入力初期WRAP() {
+	if username_saved == 名前入力初期WRAP {
 		OnInputNameSpecialXTNDAYL
 		return
 	}
@@ -2696,13 +2696,13 @@ InputNameSharedXTNDAYL
 OnInputNameSpecialXTNDAYL
 {
 	username = username_saved
-	InputNameSharedXTNDAYL()
+	InputNameSharedXTNDAYL
 }
 
 OnInputNameEndXTNDAYL
 {
 	username = username_new
-	InputNameSharedXTNDAYL()
+	InputNameSharedXTNDAYL
 }
 
 //*****************************************************
@@ -2757,7 +2757,7 @@ AYL_OnNotifyDressupInfo : void
 他に話しかける
 {
 	//まず話しかける相手を決める
-	_ghostname = AYF_GetRandomSakuraName()
+	_ghostname = AYF_GetRandomSakuraName
 
 	if STRLEN(_ghostname) == 0 {
 		if ISFUNC('話しかけられない') {
