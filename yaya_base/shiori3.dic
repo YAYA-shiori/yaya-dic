@@ -782,11 +782,10 @@ SHIORI3FW.RaiseIDEvent
 
 	_event = SHIORI3FW.EventidTranslate
 	_event_fallback = _event
-	_is_second_change = (SHIORI3FW.Eventid == 'OnSecondChange')
 
 	_result_internal = ''
-	
-	if _is_second_change {
+
+	if SHIORI3FW.Eventid == 'OnSecondChange' {
 		// OnSecondChangeならランダムトーク関連処理
 		_event = SHIORI3FW.ControlAITalk(_event)
 		_event = SHIORI3FW.TranslateEvent(_event)
