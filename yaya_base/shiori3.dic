@@ -781,15 +781,18 @@ SHIORI3FW.RaiseIDEvent
 	SHIORI3FW.MakeReferenceAndPassThruInsVariable
 
 	_event = SHIORI3FW.EventidTranslate
+	_event_fallback = _event
+	_is_second_change = (SHIORI3FW.Eventid == 'OnSecondChange')
 
 	_result_internal = ''
-	if SHIORI3FW.Eventid == 'OnSecondChange' {
+	
+	if _is_second_change {
 		// OnSecondChangeならランダムトーク関連処理
 		_event = SHIORI3FW.ControlAITalk(_event)
 		_event = SHIORI3FW.TranslateEvent(_event)
 	}
 
-	if _event != 'OnSecondChange' {
+	if ! _is_second_change {
 		if ISFUNC('SHIORI3EV.' + _event) {
 			_result_internal = TOSTR(EVAL('SHIORI3EV.' + _event))
 		}
@@ -807,6 +810,13 @@ SHIORI3FW.RaiseIDEvent
 	_result = ''
 	if ISFUNC(_event) {
 		_result = TOSTR(EVAL(_event))
+	}
+	if _result == '' {
+		if _event != _event_fallback {
+			if ISFUNC(_event_fallback) {
+				_result = TOSTR(EVAL(_event_fallback))
+			}
+		}
 	}
 	if _result == '' {
 		_result = _result_internal
