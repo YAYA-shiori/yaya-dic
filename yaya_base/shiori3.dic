@@ -792,7 +792,7 @@ SHIORI3FW.RaiseIDEvent
 		_event = SHIORI3FW.TranslateEvent(_event)
 	}
 
-	if ! _is_second_change {
+	if _event != 'OnSecondChange' {
 		if ISFUNC('SHIORI3EV.' + _event) {
 			_result_internal = TOSTR(EVAL('SHIORI3EV.' + _event))
 		}
