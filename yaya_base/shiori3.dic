@@ -120,7 +120,7 @@ load
 	ghostuptimes += 1
 
 	// 毎回起動時の初期化
-	SHIORI3FW.ResetAITalkInterval()
+	SHIORI3FW.ResetAITalkInterval(-1)
 
 	_sec = GETSECCOUNT()
 
@@ -812,7 +812,7 @@ SHIORI3FW.RaiseIDEvent
 		_result = _result_internal
 	}
 
-	if _result != '' {
+	if _result != '' { //トークあり
 		// 遅延EVAL
 		_talk = RE_SPLIT(_result,'(' + EVAL_DELIM + '|' + CHAIN_DELIM + ')')
 		_delim = RE_GETSTR
@@ -851,7 +851,7 @@ SHIORI3FW.RaiseIDEvent
 			SHIORI3FW.LastTalk = _talk[0]
 			if _event == 'OnAITalkNewEvent' {
 				SHIORI3FW.LastAITalk = _talk[0]
-				SHIORI3FW.ResetAITalkInterval()
+				SHIORI3FW.ResetAITalkInterval(STRLEN(_talk[0]))
 			}
 			if 'Surface' !_in_ _event {
 				if SHIORI3FW.RemoveAllTags(_talk[0]) != '' {
@@ -859,6 +859,12 @@ SHIORI3FW.RaiseIDEvent
 				}
 			}
 			_talk[0]
+		}
+	}
+	else { //トークなし
+		if _event == 'OnAITalkNewEvent' {
+			SHIORI3FW.LastAITalk = ''
+			SHIORI3FW.ResetAITalkInterval(0)
 		}
 	}
 
@@ -892,11 +898,14 @@ SHIORI3FW.MakeEmptyResponse
 //------------------------------------------------------------------------------
 //関数名：SHIORI3FW.ResetAITalkInterval
 //機能　：AIトーク発動処理カウンタのリセット
+//引数　：_argv[0] スクリプトの長さ もしくは初期化時-1
 //------------------------------------------------------------------------------
 SHIORI3FW.ResetAITalkInterval
 {
-	SHIORI3FW.LastAITalkTime = GETSECCOUNT()
-	SHIORI3FW.IsSurfaceRestoreComplete = 0
+	if _argv[0] != 0 {
+		SHIORI3FW.LastAITalkTime = GETSECCOUNT()
+		SHIORI3FW.IsSurfaceRestoreComplete = 0
+	}
 	SHIORI3FW.IsAITalkComplete = 0
 }
 
