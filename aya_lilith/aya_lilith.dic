@@ -615,7 +615,10 @@ OnGhostEventTranslate.AYL
 
 	_n = ARRAYSIZE(_a)
 	for _i = 0 ; _i < _n ; _i++ {
-		//_scope = _a[_i]
+		//この変数はEVAL内で使うので必要
+		//Lintでエラー吐いても消さないこと
+		_scope = _a[_i]
+		
 		void EVAL('_fname = "' + _fname_orig + '"')
 		_fname = 関数名付加調整(_fname)
 		if ISFUNC(_fname) {
