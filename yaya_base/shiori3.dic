@@ -823,7 +823,11 @@ SHIORI3FW.RaiseIDEvent
 
 	if _result != '' { //トークあり
 		// 遅延EVAL
-		_talk = RE_SPLIT(_result,'(' + EVAL_DELIM + '|' + CHAIN_DELIM + ')')
+		_talk=IARRAY
+		if SHIORI3FW.ENABLE_DELAYED_EVAL
+			_talk = RE_SPLIT(_result,'(' + EVAL_DELIM + '|' + CHAIN_DELIM + ')')
+		else
+			_talk = RE_SPLIT(_result,'(' + CHAIN_DELIM + ')')
 		_delim = RE_GETSTR
 		_n = ARRAYSIZE(_delim)
 
@@ -843,7 +847,7 @@ SHIORI3FW.RaiseIDEvent
 
 		//後から遅延設定
 		for _i = 0 ; _i < _n ; _i += 1 {
-			if _delim[_i] == EVAL_DELIM {
+			if SHIORI3FW.ENABLE_DELAYED_EVAL && _delim[_i] == EVAL_DELIM {
 				// 遅延EVAL
 				void EVAL(_talk[_i + 1])
 			}
