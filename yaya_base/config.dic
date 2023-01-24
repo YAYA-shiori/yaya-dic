@@ -58,3 +58,10 @@ SHIORI3FW.REF_ACCEL
 #globaldefine	SHIORI3FW.RES_REF_MAX			32
 #globaldefine	SHIORI3FW.AUTO_DATA_CONVERT		0
 #globaldefine	SHIORI3FW.REF_ACCEL				0
+
+/*
+See: https://github.com/YAYA-shiori/yaya-dic/issues/19
+enabling Delayed EVAL will make your ghost more vulnerable to unsuspecting people using it to attack users' computers
+make sure this switch is turned off if you can
+*/
+#globaldefine	SHIORI3FW.ENABLE_DELAYED_EVAL	0
