@@ -111,6 +111,9 @@ load
 	if ISVAR('aitalkinterval') == 0 {
 		aitalkinterval   = TALK_INTERVAL
 	}
+	if ISVAR('communicateratio') == 0 {
+		communicateratio = COM_RATIO
+	}
 	if ISVAR('ghostupmin_last') == 0 {
 		ghostupmin_last = 0
 	}
@@ -1834,6 +1837,15 @@ SHIORI3EV.OnBalloonChange : void
 //------------------------------------------------------------------------------
 SHIORI3EV.OnAITalkNewEvent
 {
+	if RAND(100) < communicateratio
+	{
+		//---- communicateratio % の率で他ゴーストへ話しかけ
+		if ISFUNC('StartCommunicate') {
+			StartCommunicate
+			return
+		}
+		//else: ?
+	}
 	//互換用処理
 	_old_name = SHIORI3FW.TranslateEvent('OnAiTalk')
 	if ISFUNC(_old_name) {
