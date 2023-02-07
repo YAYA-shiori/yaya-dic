@@ -897,17 +897,32 @@ SHIORI3FW.RaiseIDEvent
 SHIORI3FW.MakeEmptyResponse
 {
 	case _argv[0] {
-		when 'OnFirstBoot', 'OnBoot', 'OnWindowStateRestore', 'OnGhostChanged'
+		when 'OnFirstBoot', 'OnGhostChanged' {
+			_evt = SHIORI3FW.TranslateEvent('OnBoot')
+			if ISFUNC(_evt) {
+				//SSP側でフォールバックするのでここでは204を返す
+				"SHIORI/3.0 204 No Content%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)"
+			}
+			else {
+				// OnBootハンドラもない時に、スコープ0/1の基本サーフィスを出す必要があるイベント
+				"SHIORI/3.0 200 OK%(C_CRLF)Sender: AYA%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)/
+				Value: \0\s[0]\1\s[10]\e%(C_CRLF)"
+			}
+		}
+		when 'OnBoot', 'OnWindowStateRestore' {
 			// スコープ0/1の基本サーフィスを出す必要があるイベント
 			"SHIORI/3.0 200 OK%(C_CRLF)Sender: AYA%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)/
 			Value: \0\s[0]\1\s[10]\e%(C_CRLF)"
-		when 'OnClose'
+		}
+		when 'OnClose' {
 			// 終了指示を出す必要があるイベント
 			"SHIORI/3.0 200 OK%(C_CRLF)Sender: AYA%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)/
 			Value: \0\-\e%(C_CRLF)"
-		others
+		}
+		others {
 			// 上記以外では204を返送して良い
 			"SHIORI/3.0 204 No Content%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF)"
+		}
 	}
 }
 
