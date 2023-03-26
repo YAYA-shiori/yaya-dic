@@ -471,8 +471,8 @@ request
 			status = _value
 		}
 
-		//特定のイベントを除きExternalなら204で返る
-		if SHIORI3FW.SecurityLevel == 'External' && SHIORI3FW.Eventid != 'OnXUkagakaLinkOpen' {
+		//特定のイベントを除きexternalなら204で返る
+		if SHIORI3FW.SecurityLevel == 'external' && SHIORI3FW.Eventid != 'OnXUkagakaLinkOpen' {
 			SHIORI3FW.MakeEmptyResponse
 			--
 			C_CRLF
