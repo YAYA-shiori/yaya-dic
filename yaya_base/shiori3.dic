@@ -386,9 +386,6 @@ request
 	var.req.value = IARRAY
 	var.req.rawvalue = IARRAY
 
-	_linenum = 0
-	_idparsed = 0
-
 	status = ''
 	SHIORI3FW.Eventid=''
 	SHIORI3FW.SecurityLevel='Internal'//互換性のためデフォルトはInternal
@@ -401,15 +398,6 @@ request
 		//空行もしくはみつからなかった
 		if _lineend <= _linestart {
 			break
-		}
-
-		_linenum += 1
-		if SHIORI3FW.REQUEST_LINES_LIMIT {
-			if _linenum > SHIORI3FW.REQUEST_LINES_LIMIT {
-				if _idparsed {
-					break
-				}
-			}
 		}
 
 		_lin = SUBSTR(_reqdata,_linestart,(_lineend - _linestart))
@@ -452,7 +440,6 @@ request
 
 				return
 			}
-			_idparsed = 1
 		}
 		// セキュリティレベル
 		elseif _key == 'SecurityLevel' {
