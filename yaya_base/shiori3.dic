@@ -479,8 +479,8 @@ request
 		SHIORI3FW.Eventid = 'OnAITalkNewEvent'
 	}
 
-	if TOLOWER(SHIORI3FW.SecurityLevel) == 'external'{
-		SHIORI3FW.Eventid = "ExternalEvent." + SHIORI3FW.Eventid
+	if TOLOWER(SHIORI3FW.SecurityLevel) == 'external' {
+		SHIORI3FW.Eventid = 'ExternalEvent.' + SHIORI3FW.Eventid
 	}
 
 	SHIORI3FW.EventidTranslate = SHIORI3FW.TranslateEvent(SHIORI3FW.Eventid)
