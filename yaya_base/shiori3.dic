@@ -388,7 +388,7 @@ request
 
 	status = ''
 	SHIORI3FW.Eventid=''
-	SHIORI3FW.SecurityLevel='Internal'//互換性のためデフォルトはInternal
+	SHIORI3FW.SecurityLevel='local'//互換性のためデフォルトはlocal
 
 	while _lineend > _linestart {
 		//行分割
@@ -466,7 +466,7 @@ request
 		SHIORI3FW.Eventid = 'OnAITalkNewEvent'
 	}
 
-	if TOLOWER(SHIORI3FW.SecurityLevel) == 'external' {
+	if SHIORI3FW.SecurityLevel == 'external' {
 		SHIORI3FW.Eventid = 'ExternalEvent.' + SHIORI3FW.Eventid
 	}
 
