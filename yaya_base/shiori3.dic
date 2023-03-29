@@ -425,7 +425,6 @@ request
 			if SUBSTR(SHIORI3FW.Eventid, 0, 2) != 'On' {
 				SHIORI3FW.Eventid = 'On_' + SHIORI3FW.Eventid
 			}
-			_idparsed = 1
 		}
 		// セキュリティレベル
 		elseif _key == 'SecurityLevel' {
