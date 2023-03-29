@@ -143,7 +143,7 @@ load
 	SHIORI3FW.HWndOld      = (0,0)
 	SHIORI3FW.BalloonHWnd  = (0,0)
 	SHIORI3FW.UniqueID     = ''
-	SHIORI3FW.DebugMode    = 1
+	SHIORI3FW.DebugMode    = 0
 	SHIORI3FW.CanTalkFlag  = 1
 
 	SHIORI3FW.Eventid = ''
