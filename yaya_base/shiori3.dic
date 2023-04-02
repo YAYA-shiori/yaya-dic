@@ -466,7 +466,7 @@ request
 		SHIORI3FW.Eventid = 'OnAITalkNewEvent'
 	}
 
-	if SHIORI3FW.SecurityLevel == 'external' {
+	if TOLOWER(SHIORI3FW.SecurityLevel) == 'external' {
 		SHIORI3FW.Eventid = 'ExternalEvent.' + SHIORI3FW.Eventid
 	}
 
@@ -1412,7 +1412,7 @@ FUNCTIONEX
 
 	// リクエスト文字列を作成
 	_reqheader = /
-		"EXECUTE SAORI/1.0%(C_CRLF)Charset: %(CHARSETLIBEX(_argv[0]))%(C_CRLF)Sender: AYA%(C_CRLF)SecurityLevel: Local%(C_CRLF)"
+		"EXECUTE SAORI/1.0%(C_CRLF)Charset: %(CHARSETLIBEX(_argv[0]))%(C_CRLF)Sender: AYA%(C_CRLF)SecurityLevel: local%(C_CRLF)"
 	for _i = 1; _i < _argc; _i++ {
 		_reqheader += "Argument%(_i - 1): %(_argv[_i])%(C_CRLF)"
 	}
