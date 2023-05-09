@@ -170,6 +170,10 @@ load
 	array_eventtranslate = ASORT('string,ascending',GETFUNCLIST('OnGhostEventTranslate'))
 	array_translateinternal = ASORT('string,ascending',GETFUNCLIST('OnTranslateInternal'))
 
+	installedghostlist = IARRAY
+	installedsakuralist = IARRAY
+	installedkerolist = IARRAY
+
 	SHIORI3FW.InitChain
 	SHIORI3FW.InitAdditionalReturn
 
@@ -285,8 +289,6 @@ SHIORI3FW.UserName
 SHIORI3FW.UserNameFull
 SHIORI3FW.UserBirthday
 SHIORI3FW.UserSex
-SHIORI3FW.BasewareNotifysInstalledSakuraName
-SHIORI3FW.BasewareNotifysInstalledKeroName
 C_CRLF2
 C_CRLF
 C_BYTE1
@@ -1237,31 +1239,30 @@ SHIORI3FW.ExecuteDl2ToDll
 //インストール済ゴーストリストの構築
 //******************************************************************************
 //------------------------------------------------------------------------------
-//関数名：On_installedghostname
+//関数名：On_installedghostname/sakuraname/keroname
 //機能　：インストール済ゴースト名通知イベント
 //------------------------------------------------------------------------------
 On_installedsakuraname {
-	SHIORI3FW.BasewareNotifysInstalledSakuraName=1
-	//Referenceから取得
 	installedsakuralist = reference.raw
 }
 On_installedkeroname {
-	SHIORI3FW.BasewareNotifysInstalledKeroName=1
-	//Referenceから取得
 	installedkerolist = reference.raw
 }
 On_installedghostname {
-	if SHIORI3FW.BasewareNotifysInstalledSakuraName && SHIORI3FW.BasewareNotifysInstalledKeroName{
-		//Referenceから取得
-		installedghostlist = reference.raw
+	//Referenceから取得
+	installedghostlist = reference.raw
+	
+	if ARRAYSIZE(installedsakuralist) && ARRAYSIZE(installedkerolist) {
 		return
 	}
-	installedghostlist  = IARRAY
-	installedsakuralist = IARRAY
-	installedkerolist   = IARRAY
+	
 
 	// materia、もしくはイベントからの取得が指示されていなければファイル走査で取得する処理を実行
 	if basewarename == 'embryo' || !SHIORI3FW.IGLIST_ACCEL {
+		installedsakuralist = IARRAY
+		installedkerolist   = IARRAY
+		installedghostlist  = IARRAY
+
 		SHIORI3FW.StructInstalledGhostList
 	}
 }
