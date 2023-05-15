@@ -1953,9 +1953,28 @@ SHIORI3EV.On_enable_debug : void
 
 SHIORI3EV.On_ShioriEcho
 {
-	if SHIORI3FW.DebugMode {
+	if ISFUNC('On_ShioriEcho') {//User costom ShioriEcho
+		EVAL('On_ShioriEcho')
+	}
+	elseif SHIORI3FW.DebugMode {
 		'\0Eval Result = ' + JOIN(EVAL(reference[0]),',')
 	}
+	else {
+		'\0Need DebugMode'
+	}
+}
+
+SHIORI3EV.On_Has_Event : void {
+	_event_name=reference0
+	if SUBSTR(_event_name,0,2) != 'On'
+		_event_name='On_'+_event_name
+	_result=0
+	if TOLOWER(SHIORI3FW.SecurityLevel) == 'external'
+		_event_name='ExternalEvent.'+_event_name
+	_result=ISFUNC(_event_name)
+	if !_result
+		_result=ISFUNC('SHIORI3EV.'+_event_name)
+	SHIORI3FW.Push_X_SSTP_PassThru('Result',_result)
 }
 
 DUMP : void
