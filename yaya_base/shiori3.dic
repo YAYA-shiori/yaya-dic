@@ -1965,7 +1965,7 @@ SHIORI3EV.On_ShioriEcho
 }
 
 SHIORI3EV.On_Has_Event : void {
-	_event_name=reference0
+	_event_name=reference.raw[0]
 	if SUBSTR(_event_name,0,2) != 'On'
 		_event_name='On_'+_event_name
 	_result=0
