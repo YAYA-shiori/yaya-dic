@@ -1957,10 +1957,14 @@ SHIORI3EV.On_ShioriEcho
 		EVAL('On_ShioriEcho')
 	}
 	elseif SHIORI3FW.DebugMode {
-		'\0Eval Result = ' + JOIN(EVAL(reference[0]),',')
+		_result=EVAL(reference[0])
+		'\0Eval Result = ' + JOIN(_result,',')
+		SHIORI3FW.Push_X_SSTP_PassThru('Result',_result)
+		SHIORI3FW.Push_X_SSTP_PassThru('Type','id: '+GETTYPEEX('_result'))
 	}
 	else {
 		'\0Need DebugMode'
+		SHIORI3FW.Push_X_SSTP_PassThru('Special','Need DebugMode')
 	}
 }
 
