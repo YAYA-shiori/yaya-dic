@@ -2029,7 +2029,12 @@ SHIORI3FW.GetTickInfo
 
 ghostupmin
 {
-	(GETSECCOUNT / 60) - ghostbootmin
+	if ISVAR('ghostbootmin') {
+		(GETSECCOUNT / 60) - ghostbootmin
+	}
+	else {
+		0
+	}
 }
 
 ghostupmin_total
