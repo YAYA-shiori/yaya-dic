@@ -1983,6 +1983,9 @@ SHIORI3EV.On_Has_Event : void {
 		_result=ISFUNC('SHIORI3EV.'+_event_name)
 	SHIORI3FW.Push_X_SSTP_PassThru('Result',_result)
 }
+SHIORI3EV.ExternalEvent.On_Has_Event{
+	SHIORI3EV.On_Has_Event
+}
 
 DUMP : void
 {
