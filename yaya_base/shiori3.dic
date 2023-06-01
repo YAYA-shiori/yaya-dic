@@ -655,7 +655,7 @@ SHIORI3FW.PushAdditionalReturn : void
 SHIORI3FW.Push_X_SSTP_PassThru : void
 {
 	_h = 'X-SSTP-PassThru-' + TOSTR(_argv[0])
-	SHIORI3FW.PushAdditionalReturn(_h,_argv[1])
+	SHIORI3FW.PushAdditionalReturn(_h,_argv)
 }
 
 //------------------------------------------------------------------------------
