@@ -1996,22 +1996,25 @@ SHIORI3EV.On_Get_Supported_Events: void {
 	}
 	_L=GETFUNCLIST('SHIORI3EV.On')
 	foreach _L;_func{
-		if SUBSTR(_func,13,1) == '_'
-			_func=SUBSTR(_func,14,STRLEN(_func))
+		_func=SUBSTR(_func,10,STRLEN(_func))
+		if SUBSTR(_func,2,1) == '_'
+			_func=SUBSTR(_func,3,STRLEN(_func))
 		_base_local_event_funcs,=_func
 	}
 	SHIORI3FW.Push_X_SSTP_PassThru('local',ARRAYDEDUP(_base_local_event_funcs))
 	_L=GETFUNCLIST('ExternalEvent.On')
 	_base_external_event_funcs=IARRAY
 	foreach _L;_func{
-		if SUBSTR(_func,16,1) == '_'
-			_func=SUBSTR(_func,17,STRLEN(_func))
+		_func=SUBSTR(_func,14,STRLEN(_func))
+		if SUBSTR(_func,2,1) == '_'
+			_func=SUBSTR(_func,3,STRLEN(_func))
 		_base_external_event_funcs,=_func
 	}
 	_L=GETFUNCLIST('SHIORI3EV.ExternalEvent.On')
 	foreach _L;_func{
-		if SUBSTR(_func,26,1) == '_'
-			_func=SUBSTR(_func,27,STRLEN(_func))
+		_func=SUBSTR(_func,24,STRLEN(_func))
+		if SUBSTR(_func,2,1) == '_'
+			_func=SUBSTR(_func,3,STRLEN(_func))
 		_base_external_event_funcs,=_func
 	}
 	SHIORI3FW.Push_X_SSTP_PassThru('external',ARRAYDEDUP(_base_external_event_funcs))
