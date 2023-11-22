@@ -1416,6 +1416,15 @@ FUNCTIONLOAD
 			0
 			return
 		}
+		// 相手のCharsetに合わせる
+		_i = 0
+		foreach var.lib.key; _key {
+			if (_key == 'Charset') {
+				void CHARSETLIBEX(_argv[0], var.lib.value[_i])
+				break
+			}
+			_i++
+		}
 		SAORI.DllList ,= _argv[0]
 	}
 	1
