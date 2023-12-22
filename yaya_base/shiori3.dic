@@ -294,6 +294,8 @@ SHIORI3FW.UserBirthday
 SHIORI3FW.UserSex
 SHIORI3FW.BasewareNotifysInstalledSakuraName
 SHIORI3FW.BasewareNotifysInstalledKeroName
+SHIORI3FW.LastSurface
+SHIORI3FW.IsVisible
 C_CRLF2
 C_CRLF
 C_BYTE1
