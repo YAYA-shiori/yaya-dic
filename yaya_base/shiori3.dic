@@ -307,8 +307,6 @@ C_BYTE1
 	//SHIORI3FW.BalloonName
 	//SHIORI3FW.BalloonNameOld
 	//SHIORI3FW.BalloonPath
-	//SHIORI3FW.LastSurface
-	//SHIORI3FW.IsVisible
 
 	ERASEVAR(SPLIT(_var,C_CRLF))
 
