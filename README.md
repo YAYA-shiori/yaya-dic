@@ -14,6 +14,12 @@ dicdir, yaya_base
 
 また、_loading_order.txt を編集することで、`yaya_base/optional.dic`を無効にしたり、`yaya_base/compatible.dic`を有効にすることが可能です。
 
+## 新規ゴーストを作る方へ
+
+全部盛りサンプルゴースト「紺野ややめ」を見てください。
+
+https://github.com/YAYA-shiori/konnoyayame
+
 ## ライセンス
 
 Public Domain (Unlicense)
