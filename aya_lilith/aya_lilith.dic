@@ -1523,7 +1523,7 @@ AYL_OnGhostCalling
 {
 	_script = CallChangeFunc('を呼び出し')
 
-	if TOINT(EVAL('呼び出し反応に切り替え反応を流用')) {
+	if AYF_ProcessBoolFlag('呼び出し反応に切り替え反応を流用') {
 		_script = CallChangeFunc('へ変更',1)
 	}
 
@@ -1543,7 +1543,7 @@ AYL_OnGhostCalled
 	_change = CallChangeFunc('から呼び出される')
 
 	if STRLEN(_change) == 0 {
-		if TOINT(EVAL('呼び出し反応に切り替え反応を流用')) {
+		if AYF_ProcessBoolFlag('呼び出し反応に切り替え反応を流用') {
 			_change = CallChangeFunc('から変更',1)
 		}
 	}
@@ -1693,7 +1693,9 @@ SpecialBootCloseTalkExec
 	_talk = (SpecialBootCloseTalkExecArray(_argv[0]),IARRAY)
 	_talk_size = ARRAYSIZE(_talk)
 
-	if (_date != EVAL("特殊%(_argv[0])トーク実行日時")) || (_talk_size != EVAL("特殊%(_argv[0])トーク配列数")) {
+	_is_always = AYF_ProcessBoolFlag('特殊トークを毎回実行')
+
+	if (_is_always || (_date != EVAL("特殊%(_argv[0])トーク実行日時"))) || (_talk_size != EVAL("特殊%(_argv[0])トーク配列数")) {
 		void EVAL("特殊%(_argv[0])トーク配列 = _talk")
 		void EVAL("特殊%(_argv[0])トーク実行日時 = _date")
 		void EVAL("特殊%(_argv[0])トーク配列数 = _talk_size")
@@ -2237,7 +2239,7 @@ AYL_OnMouseGesture
 			return
 		}
 
-		if TOINT(EVAL('マウスジェスチャーにホイール反応を流用')) {
+		if AYF_ProcessBoolFlag('マウスジェスチャーにホイール反応を流用') {
 			if '上' _in_ _name || '下' _in_ _name {
 				if '上' _in_ _name {
 					_name = '上'
@@ -2929,3 +2931,21 @@ AYF_ComSyntaxToAyaSyntaxEval
 	_result_and
 }
 
+AYF_ProcessBoolFlag
+{
+	_func = _argv[0]
+	_default = 0
+	if _argc >= 2 {
+		_default = _argv[1]
+	}
+
+	if ISFUNC(_func) == 0 {
+		_default
+		return
+	}
+	if TOINT(EVAL(_func)) != 0 {
+		1
+		return
+	}
+	0
+}
