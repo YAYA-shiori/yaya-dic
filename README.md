@@ -16,9 +16,16 @@ dicdir, yaya_base
 
 ## 新規ゴーストを作る方へ
 
-全部盛りサンプルゴースト「紺野ややめ」を見てください。
+全部盛りサンプルゴースト「紺野ややめ」
 
 https://github.com/YAYA-shiori/konnoyayame
+
+あやりりす/あやりりすEX簡易記法エンジンつき「紺野りりす」
+
+https://github.com/YAYA-shiori/ayalilith
+
+- [あやりりすマニュアル](aya_lilith/manual_aya_lilith.md)
+- [あやりりすEXマニュアル](aya_lilith/manual_aya_lilith_ex.md)
 
 ## ライセンス
 
