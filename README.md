@@ -24,7 +24,7 @@ https://github.com/YAYA-shiori/konnoyayame
 
 https://github.com/YAYA-shiori/ayalilith
 
-- [システム辞書内関数マニュアル(docs/manual_yaya_base.md)
+- [システム辞書内関数マニュアル](docs/manual_yaya_base.md)
 - [あやりりすマニュアル](docs/manual_aya_lilith.md)
 - [あやりりすEXマニュアル](docs/manual_aya_lilith_ex.md)
 
