@@ -1468,6 +1468,86 @@ FUNCTIONEX
 SAORI { FUNCTIONEX(_argv) }
 
 //------------------------------------------------------------------------------
+//関数名：GET_PROPERTY
+//機能　：システム関数DIRECTSSTPを使って、指定した本体プロパティを取得します
+//引数　：_argv[0] = プロパティ名
+//返値　：失敗時空文字列、成功時プロパティの値
+//------------------------------------------------------------------------------
+GET_PROPERTY
+{
+	if _argc < 1 {
+		""
+		return
+	}
+	
+	_request = "EXECUTE SSTP/1.1%(C_CRLF)Command: GetProperty%(C_CRLF)Reference0: %(_argv[0])%(C_CRLF)Sender: YAYA%(C_CRLF)Charset: UTF-8%(C_CRLF)%(C_CRLF)"
+	
+	_response = DIRECTSSTP(SHIORI3FW.HWnd[0],_request)
+	if _response == -1 {
+		""
+		return
+	}
+	
+	_respose_array = SPLIT(_response,C_CRLF)
+	
+	if "200" !_in_ _respose_array[0] && "204" !_in_ _respose_array[0] {
+		""
+		return
+	}
+	
+	_n = ARRAYSIZE(_respose_array)
+	_value = ""
+	_empty_line_found = 0
+	for _i = 1 ; _i < _n ; _i++ {
+		if _respose_array[_i] == "" {
+			_empty_line_found = 1
+			continue
+		}
+		if _empty_line_found {
+			_value += _respose_array[_i]
+			if _empty_line_found >= 2 {
+				_value += C_CRLF
+			}
+			else {
+				_empty_line_found = 2
+			}
+		}
+	}
+	
+	_value
+}
+
+//------------------------------------------------------------------------------
+//関数名：SET_PROPERTY
+//機能　：システム関数DIRECTSSTPを使って、指定した本体プロパティを設定します
+//引数　：_argv[0] = プロパティ名 _argv[1] = 値
+//------------------------------------------------------------------------------
+SET_PROPERTY
+{
+	if _argc < 2 {
+		0
+		return
+	}
+	
+	_request = "EXECUTE SSTP/1.1%(C_CRLF)Command: SetProperty%(C_CRLF)Reference0: %(_argv[0])%(C_CRLF)Reference1: %(_argv[1])%(C_CRLF)Sender: YAYA%(C_CRLF)Charset: UTF-8%(C_CRLF)%(C_CRLF)"
+
+	_response = DIRECTSSTP(SHIORI3FW.HWnd[0],_request)
+	if _response == -1 {
+		0
+		return
+	}
+	
+	_respose_array = SPLIT(_response,C_CRLF)
+
+	if "200" _in_ _respose_array[0] || "204" _in_ _respose_array[0] {
+		1
+		return
+	}
+	0
+	return
+}
+
+//------------------------------------------------------------------------------
 //関数名：SHIORI3FW.SendGETVersion
 //機能　：SAORIへGET Versionを送出します
 //引数　：_argv[0] SAORIファイル名
