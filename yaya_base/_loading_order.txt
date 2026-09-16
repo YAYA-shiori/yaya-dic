@@ -2,3 +2,4 @@ dic, config.dic, UTF-8
 dic, shiori3.dic, UTF-8
 dicif, optional.dic, UTF-8
 dicif, compatible.dic, UTF-8
+dicif, lint.dic, UTF-8

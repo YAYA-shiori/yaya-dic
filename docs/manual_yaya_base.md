@@ -1,6 +1,6 @@
-# shiori3.dic / optional.dic ユーティリティ関数・変数 利用マニュアル
+# shiori3.dic / optional.dic / lint.dic ユーティリティ関数・変数 利用マニュアル
 
-`yaya_base/shiori3.dic` および `yaya_base/optional.dic` が提供するユーザー向けの関数・変数・疑似イベントをまとめたリファレンスです。
+`yaya_base/shiori3.dic`、`yaya_base/optional.dic`、`yaya_base/lint.dic` が提供するユーザー向けの関数・変数・疑似イベントをまとめたリファレンスです。
 
 ---
 
@@ -30,6 +30,10 @@
 17. [バルーン初期化関数](#17-バルーン初期化関数)
 18. [FMO 関連関数・変数](#18-fmo-関連関数変数)
 19. [その他ユーティリティ](#19-その他ユーティリティ)
+
+### lint.dic
+
+20. [辞書の静的検査（lint）](#20-辞書の静的検査lint)
 
 ---
 
@@ -754,3 +758,67 @@ OnNetworkUpdateComplete
 	}
 }
 ```
+
+---
+
+## 20. 辞書の静的検査（lint）
+
+`yaya_base/lint.dic` は、読み込み済みの辞書を YAYA 自身で検査します（yayalint の代わり）。YAYA Tc574-1 以降の `LINT.GetVarRefs` と `GETFUNCINFO` を使います。それより古い YAYA でも読み込みエラーにはならず、`SHIORI3FW.Lint.Run` が使えないことを返すだけです。
+
+`_loading_order.txt` では `dicif` で読み込んでいるので、配布するゴーストから `lint.dic` を消してもかまいません。
+
+### `SHIORI3FW.Lint.Run([オプション])`
+
+辞書を検査し、結果を1件1行の文字列で返します。玉や tamac から `?? SHIORI3FW.Lint.Run` を送ると結果を見られます。
+
+- **引数**：`_argv[0]` — オプション（カンマ区切り、省略可）
+  - `system` — システム辞書（`yaya_base` などのあるフォルダ）の結果も表示する。省略時は件数だけを数える
+- **戻り値**：`ファイル:行: 種類 '名前' in 関数名 (did you mean: 候補)` の行と、最後に `SHIORI3FW.Lint: done (undefined: n, unused: n, other: n, hidden in the system dictionary: n)` の行。ファイルは `yaya.dll` のあるフォルダからの相対パス
+
+| 種類 | 内容 |
+|------|------|
+| `read undefined variable` | どの関数でも代入されていないグローバル変数を読んでいる。名前の似た関数・変数を `did you mean:` に添える |
+| `read undefined local variable` | 代入より前、または作られたブロック `{ }` の外でローカル変数を読んでいる |
+| `unused function` | どこからも呼ばれていない関数 |
+| `unused variable` | 代入されているが、どこでも読まれていないグローバル変数（代入した行ごと） |
+| `unused local variable` | 代入されているが、ブロックを抜けるまで読まれないローカル変数 |
+| `assignment in condition` | `if` / `elseif` / `while` / `for` の条件式が、関数を含まずに `=` で代入している（`==` の書き間違い） |
+
+```
+// 玉・tamac から
+?? SHIORI3FW.Lint.Run
+?? SHIORI3FW.Lint.Run('system')
+```
+
+#### 使われているとみなすもの
+
+- 関数：`On` で始まるもの（イベント・リソース・疑似イベント）、`SHIORI3EV.`、`shiori.On`、`load` / `unload` / `request`
+- 定義の行のほかに、辞書のテキスト（`//` や `/* */` だけの行を除く）に名前が単語として書かれている関数。`EVAL('名前')`、`\e:chain=名前`、`\q[...,名前]` などで呼ばれるもの
+- `'名前'` / `"名前"` のように文字列そのものとして書かれている、または `%(名前)` が書かれているグローバル変数。ただし `ERASEVAR(` や `SHIORI3FW.RegisterTempVar(` を含む行のものは数えない
+- 読み込まれた時点で存在するグローバル変数（`ISVAR` が 1。セーブデータなど）は、未定義として報告しない
+- `EVAL` か `LETTONAME` を呼ぶ関数では、その関数の文字列の中に現れるローカル変数を報告しない
+
+#### 設定：`OnSHIORI3FW.Lint.UsedFunctions` / `OnSHIORI3FW.Lint.UsedVariables`
+
+実行時に名前を組み立てて呼ぶ関数（`EVAL('Mouse' + _part)` など）は、未使用に見えます。ゴーストの辞書にこれらの関数を書き、名前に一致する正規表現の配列を返すと、その関数・グローバル変数を使われているものとして扱います。
+
+```
+OnSHIORI3FW.Lint.UsedFunctions
+{
+	(IARRAY, '^Mouse(Move|DoubleClick|Wheel)', '^TalkTo', '^ReplyTo')
+}
+
+OnSHIORI3FW.Lint.UsedVariables
+{
+	(IARRAY, '^res_reference')
+}
+```
+
+#### 制約
+
+- 読み込みに成功した辞書だけを検査します。構文エラーや括弧付きの未定義関数の呼び出しは、YAYA が読み込み時にエラーとして出します。
+- 行は、複数行にわたるステートメントでは最後の行になります。桁は得られません。
+- ローカル変数はブロック `{ }` の出入りと記述の順で調べ、実行の流れ（`return` や `break` の後、ループの2周目など）は考慮しません。グローバル変数は、どこかで代入・読み出しがあるかだけを見ます。
+- `'...'` の中に書いて後から `EVAL` するトークの `%(名前)` は、関数の呼び出しとしては見えません（テキストに名前が書かれていれば使われているとみなします）。
+- 実行中は `looplimit` を 0 にし、終わったら元に戻します。辞書ファイルを読むために `FCHARSET` を `charset.dic` に切り替え、終わったら `charset.file` に戻します。
+- 名前が `SHIORI3FW.Lint.` で始まる関数は検査しません。

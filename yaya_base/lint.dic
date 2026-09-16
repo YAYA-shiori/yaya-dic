@@ -1,0 +1,688 @@
+//******************************************************************************
+//SHIORI/3.0制御スクリプト for YAYA
+//辞書の静的検査（lint）
+//
+//YAYA Tc574-1 以降の LINT.GetVarRefs を使い、読み込み済みの辞書から
+//未使用の関数・変数、未定義の変数の読み出し、条件式内の代入を探します。
+//
+//使い方：SHIORI3FW.Lint.Run の戻り値を表示する（玉やtamacから '?? SHIORI3FW.Lint.Run'）
+//******************************************************************************
+
+#define	LINT_TAB	CHR(9)
+#define	LINT_LF		CHR(10)
+#define	LINT_SEP	CHR(1)
+#define	LINT_SELF	'SHIORI3FW.Lint.'
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.Run
+//機能　：読み込み済みの辞書を検査し、結果を1件1行の文字列で返す
+//引数　：argv0＝オプション（カンマ区切り、省略可）
+//          system … システム辞書（yaya_base などのあるフォルダ）の結果も表示する
+//戻り値：「ファイル:行: 種類 '名前' in 関数名 (did you mean: 候補)」の行と、最後に集計の行
+//          種類は unused function / unused variable / unused local variable /
+//          read undefined variable / read undefined local variable / assignment in condition
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.Run
+{
+	if ISFUNC('LINT.GetVarRefs') != 2 || ISFUNC('GETFUNCINFO') != 2 {
+		'SHIORI3FW.Lint: LINT.GetVarRefs is not available in this YAYA (' + GETSETTING('coreinfo.version') + '). Tc574-1 or later is needed.'
+		return
+	}
+
+	_option = ',' + TOLOWER(REPLACE(_argv[0], ' ', '')) + ','
+	_include_system = (STRSTR(_option, ',system,', 0) >= 0)
+
+	_looplimit = GETSETTING('looplimit')
+	void SETSETTING('looplimit', '0')
+
+	_base = SHIORI3FW.Lint.NormalizePath(GETSETTING('coreinfo.path'))
+	_selfinfo = GETFUNCINFO('SHIORI3FW.Lint.Run')
+	_sysdir = SHIORI3FW.Lint.ParentDir(SHIORI3FW.Lint.ParentDir(SHIORI3FW.Lint.NormalizePath(_selfinfo[0])))
+
+	_used_func_patterns = ('^On', '^SHIORI3EV\.', '^shiori\.On', '^load$', '^unload$', '^request$')
+	if ISFUNC('OnSHIORI3FW.Lint.UsedFunctions') == 1 {
+		_used_func_patterns ,= EVAL('OnSHIORI3FW.Lint.UsedFunctions')
+	}
+	_used_var_patterns = IARRAY
+	if ISFUNC('OnSHIORI3FW.Lint.UsedVariables') == 1 {
+		_used_var_patterns ,= EVAL('OnSHIORI3FW.Lint.UsedVariables')
+	}
+
+	//関数ごとの情報
+	_funcs = ASORT('string,ascending', GETFUNCLIST())
+	_fn_name = IARRAY
+	_fn_file = IARRAY
+	_fn_line = IARRAY
+	_fn_system = IARRAY
+
+	//辞書ファイル
+	_files = IARRAY
+	_files_full = IARRAY
+
+	//呼ばれているユーザー関数
+	_called = IARRAY
+
+	//グローバル変数の出現
+	_g_name = IARRAY
+	_g_access = IARRAY
+	_g_file = IARRAY
+	_g_line = IARRAY
+	_g_func = IARRAY
+	_g_system = IARRAY
+
+	_findings = IARRAY
+	_dynamic_funcs = IARRAY
+
+	foreach _funcs ; _fn {
+		if SUBSTR(_fn, 0, STRLEN(LINT_SELF)) == LINT_SELF {
+			continue
+		}
+		_info = GETFUNCINFO(_fn)
+		_refs = EVAL('LINT.GetVarRefs(_fn)')
+		if GETTYPE(_info) != 4 || GETTYPE(_refs) != 4 {
+			continue
+		}
+		_full = SHIORI3FW.Lint.NormalizePath(_info[0])
+		_file = SHIORI3FW.Lint.RelativePath(_full, _base)
+		_system = SHIORI3FW.Lint.IsUnder(_full, _sysdir)
+
+		_fn_name ,= _fn
+		_fn_file ,= _file
+		_fn_line ,= _info[1]
+		_fn_system ,= _system
+		if ASEARCH(_file, _files) < 0 {
+			_files ,= _file
+			_files_full ,= _info[0]
+		}
+
+		_dynamic = 0
+		_cond_assign = IARRAY
+		_cond_func = IARRAY
+		foreach _refs ; _r {
+			_kind = _r[0]
+			if _kind == 'func' {
+				if SHIORI3FW.Lint.IsConditionContext(_r[6]) {
+					_cond_func ,= _r[4] + LINT_SEP + _r[6]
+				}
+				if _r[1] == 'user' {
+					if _r[2] != _fn {
+						_called ,= _r[2]
+					}
+				}
+				elseif _r[2] == 'EVAL' || _r[2] == 'LETTONAME' {
+					_dynamic = 1
+				}
+			}
+			elseif _kind == 'var' {
+				if _r[1] == 'global' {
+					_g_name ,= _r[2]
+					_g_access ,= _r[3]
+					_g_file ,= _file
+					_g_line ,= TOINT(_r[4])
+					_g_func ,= _fn
+					_g_system ,= _system
+				}
+				if _r[3] == 'w' && SHIORI3FW.Lint.IsConditionContext(_r[6]) {
+					_cond_assign ,= _r
+				}
+			}
+		}
+		//条件式の = は代入になる。関数を含む条件式（if (_line = FREAD(_f)) == -1 など）は意図した代入とみなす
+		foreach _cond_assign ; _r {
+			if ASEARCH(_r[4] + LINT_SEP + _r[6], _cond_func) < 0 {
+				_findings ,= SHIORI3FW.Lint.Finding(_file, _r[4], 'assignment in condition', _r[2], _fn, '', _system)
+			}
+		}
+		if _dynamic {
+			_dynamic_funcs ,= _fn
+		}
+
+		_findings ,= SHIORI3FW.Lint.CheckLocal(_fn, _file, _system, _refs)
+	}
+
+	//辞書のテキスト（文字列から名前で呼ばれる関数・変数を探すのに使う）
+	_texts = SHIORI3FW.Lint.ReadTexts(_files_full)
+	_alltext = ''
+	foreach _texts ; _t {
+		_alltext += _t + LINT_LF
+	}
+	//変数を消すだけの行（ERASEVAR('名前') など）は、読み出しに数えない
+	_readtext = RE_REPLACE(_alltext, '[^\n]*(ERASEVAR|RegisterTempVar)\s*\([^\n]*', '')
+
+	//文字列の中で使われているローカル変数（EVAL などで読み書きされる）
+	//CheckLocal の結果から、その関数の文字列の中に現れる名前を除く
+	if ARRAYSIZE(_dynamic_funcs) > 0 {
+		_kept = IARRAY
+		foreach _findings ; _f {
+			_fields = SPLIT(_f, LINT_TAB)
+			if STRSTR(_fields[2], 'local variable', 0) >= 0 && ASEARCH(_fields[4], _dynamic_funcs) >= 0 {
+				_i = ASEARCH(_fields[4], _fn_name)
+				_fi = ASEARCH(_fn_file[_i], _files)
+				_info = GETFUNCINFO(_fields[4])
+				_src = SHIORI3FW.Lint.GetLines(_texts[_fi], TOINT(_info[1]), TOINT(_info[2]))
+				if SHIORI3FW.Lint.IsInString(_src, _fields[3]) {
+					continue
+				}
+			}
+			_kept ,= _f
+		}
+		_findings = _kept
+	}
+
+	//未使用の関数
+	_called = ARRAYDEDUP(_called)
+	_n = ARRAYSIZE(_fn_name)
+	for _i = 0 ; _i < _n ; _i++ {
+		_fn = _fn_name[_i]
+		if ASEARCH(_fn, _called) >= 0 {
+			continue
+		}
+		if SHIORI3FW.Lint.MatchAny(_fn, _used_func_patterns) {
+			continue
+		}
+		//定義の1回を除いて、辞書のどこか（文字列など）に名前が書かれていれば使われているとみなす
+		if RE_GREP(_alltext, SHIORI3FW.Lint.WordPattern(_fn)) >= 2 {
+			continue
+		}
+		_findings ,= SHIORI3FW.Lint.Finding(_fn_file[_i], _fn_line[_i], 'unused function', _fn, '', '', _fn_system[_i])
+	}
+
+	//グローバル変数
+	_n = ARRAYSIZE(_g_name)
+	if _n > 0 {
+		_order = ASORT('string,ascending,index', _g_name)
+		_var_candidates = IARRAY
+		_start = 0
+		while _start < _n {
+			_name = _g_name[_order[_start]]
+			_end = _start
+			_read = 0
+			_write = 0
+			while _end < _n {
+				_k = _order[_end]
+				if _g_name[_k] != _name {
+					break
+				}
+				if _g_access[_k] != 'w' {
+					_read = 1
+				}
+				if _g_access[_k] != 'r' {
+					_write = 1
+				}
+				_end++
+			}
+
+			_kind = ''
+			if _write {
+				_var_candidates ,= _name
+				if !_read {
+					_kind = 'unused variable'
+				}
+			}
+			else {
+				_kind = 'read undefined variable'
+			}
+
+			if _kind != '' {
+				if SHIORI3FW.Lint.MatchAny(_name, _used_var_patterns) {
+					_kind = ''
+				}
+				elseif _kind == 'unused variable' {
+					//文字列で名前が指定されている（EVAL('名前') など）か、'...%(名前)...' に書かれている
+					if RE_GREP(_readtext, '[' + CHR(0x22) + CHR(0x27) + ']' + SHIORI3FW.Lint.EscapeRegex(_name) + '[' + CHR(0x22) + CHR(0x27) + ']') > 0 {
+						_kind = ''
+					}
+					elseif RE_GREP(_readtext, '%\('+ SHIORI3FW.Lint.EscapeRegex(_name) + '(?![^\[\)])') > 0 {
+						_kind = ''
+					}
+				}
+				else {
+					//実行時に存在するか（セーブデータや LETTONAME で作られる）、文字列で名前が指定されている
+					if ISVAR(_name) == 1 {
+						_kind = ''
+					}
+					elseif RE_GREP(_alltext, '[' + CHR(0x22) + CHR(0x27) + ']' + SHIORI3FW.Lint.EscapeRegex(_name) + '[' + CHR(0x22) + CHR(0x27) + ']') > 0 {
+						_kind = ''
+					}
+				}
+			}
+
+			if _kind != '' {
+				_prev = ''
+				for _j = _start ; _j < _end ; _j++ {
+					_k = _order[_j]
+					if _kind == 'unused variable' && _g_access[_k] == 'r' {
+						continue
+					}
+					_key = _g_file[_k] + LINT_SEP + _g_line[_k]
+					if _key == _prev {
+						continue
+					}
+					_prev = _key
+					_findings ,= SHIORI3FW.Lint.Finding(_g_file[_k], _g_line[_k], _kind, _name, _g_func[_k], '', _g_system[_k])
+				}
+			}
+			_start = _end
+		}
+
+		//未定義の変数に、名前の似た関数・変数を添える
+		_candidates = (_var_candidates, _fn_name)
+		_n = ARRAYSIZE(_findings)
+		for _i = 0 ; _i < _n ; _i++ {
+			_fields = SPLIT(_findings[_i], LINT_TAB)
+			if _fields[2] == 'read undefined variable' {
+				_fields[5] = SHIORI3FW.Lint.Suggest(_fields[3], _candidates)
+				_findings[_i] = JOIN(_fields, LINT_TAB)
+			}
+		}
+	}
+
+	void SETSETTING('looplimit', _looplimit)
+
+	SHIORI3FW.Lint.Format(_findings, _include_system)
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.CheckLocal
+//機能　：1つの関数のローカル変数を検査する
+//        ブロック { } を抜けるとその中で作られたローカル変数は消えるので、
+//        スコープの外で作られた変数を読むと「未定義」になる
+//引数　：argv0＝関数名 argv1＝ファイル argv2＝システム辞書なら1 argv3以降＝LINT.GetVarRefs の結果
+//戻り値：検査結果の配列（SHIORI3FW.Lint.Finding の形式）
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.CheckLocal
+{
+	_fn = _argv[0]
+	_file = _argv[1]
+	_system = _argv[2]
+
+	_result = IARRAY
+	_undefined = IARRAY
+
+	//有効なローカル変数（名前・作られた深さ・読まれたか・最初に代入された行）
+	_v_name = IARRAY
+	_v_depth = IARRAY
+	_v_read = IARRAY
+	_v_line = IARRAY
+
+	//候補に使う、関数内で代入されるローカル変数の名前
+	_assigned = IARRAY
+
+	for _i = 3 ; _i < _argc ; _i++ {
+		_r = _argv[_i]
+		if _r[0] == 'var' && _r[1] == 'local' && _r[3] != 'r' {
+			_assigned ,= _r[2]
+		}
+	}
+	_assigned = ARRAYDEDUP(_assigned)
+
+	for _i = 3 ; _i < _argc ; _i++ {
+		_r = _argv[_i]
+		_kind = _r[0]
+		if _kind == '{' {
+			continue
+		}
+		elseif _kind == '}' {
+			_depth = TOINT(_r[5])
+			_n = ARRAYSIZE(_v_name)
+			while _n > 0 {
+				if _v_depth[_n - 1] < _depth {
+					break
+				}
+				if !_v_read[_n - 1] {
+					_result ,= SHIORI3FW.Lint.Finding(_file, _v_line[_n - 1], 'unused local variable', _v_name[_n - 1], _fn, '', _system)
+				}
+				_v_name[_n - 1] = IARRAY
+				_v_depth[_n - 1] = IARRAY
+				_v_read[_n - 1] = IARRAY
+				_v_line[_n - 1] = IARRAY
+				_n--
+			}
+		}
+		elseif _kind == 'var' && _r[1] == 'local' {
+			_name = _r[2]
+			_access = _r[3]
+			_pos = ASEARCH(_name, _v_name)
+			if _pos >= 0 {
+				if _access != 'w' {
+					_v_read[_pos] = 1
+				}
+			}
+			else {
+				if _access != 'w' && _name != '_argv' && _name != '_argc' {
+					_key = _name + LINT_SEP + _r[4]
+					if ASEARCH(_key, _undefined) < 0 {
+						_undefined ,= _key
+						_result ,= SHIORI3FW.Lint.Finding(_file, _r[4], 'read undefined local variable', _name, _fn, SHIORI3FW.Lint.Suggest(_name, _assigned), _system)
+					}
+				}
+				if _access != 'r' {
+					_v_name ,= _name
+					_v_depth ,= TOINT(_r[5])
+					_v_read ,= (_access == 'rw')
+					_v_line ,= _r[4]
+				}
+			}
+		}
+	}
+	_result
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.Finding
+//機能　：検査結果1件をタブ区切りの文字列にする
+//引数　：argv0＝ファイル argv1＝行 argv2＝種類 argv3＝名前 argv4＝関数名 argv5＝候補 argv6＝システム辞書なら1
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.Finding
+{
+	_argv[0] + LINT_TAB + _argv[1] + LINT_TAB + _argv[2] + LINT_TAB + _argv[3] + LINT_TAB + _argv[4] + LINT_TAB + _argv[5] + LINT_TAB + _argv[6]
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.Format
+//機能　：検査結果をファイル・行の順に並べて文字列にする
+//引数　：argv0～＝検査結果の配列 最後＝システム辞書の結果も出すなら1
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.Format
+{
+	_include_system = _argv[_argc - 1]
+
+	_items = IARRAY
+	_keys = IARRAY
+	_hidden = 0
+	_undefined = 0
+	_unused = 0
+	_other = 0
+	for _i = 0 ; _i < _argc - 1 ; _i++ {
+		_fields = SPLIT(_argv[_i], LINT_TAB)
+		if TOINT(_fields[6]) && !_include_system {
+			_hidden++
+			continue
+		}
+		_items ,= _argv[_i]
+		_keys ,= _fields[0] + LINT_SEP + RE_REPLACE('00000000' + _fields[1], '^0*(?=\d{8}$)', '') + LINT_SEP + _fields[3]
+	}
+
+	_result = ''
+	_prev = ''
+	_order = ASORT('string,ascending,index', _keys)
+	foreach _order ; _k {
+		_fields = SPLIT(_items[_k], LINT_TAB)
+		_line = _fields[0] + ':' + _fields[1] + ': ' + _fields[2] + " '" + _fields[3] + "'"
+		if _fields[4] != '' {
+			_line += ' in ' + _fields[4]
+		}
+		if _fields[5] != '' {
+			_line += ' (did you mean: ' + _fields[5] + ')'
+		}
+		if _line == _prev {
+			continue
+		}
+		_prev = _line
+		_result += _line + LINT_LF
+
+		if STRSTR(_fields[2], 'undefined', 0) >= 0 {
+			_undefined++
+		}
+		elseif STRSTR(_fields[2], 'unused', 0) >= 0 {
+			_unused++
+		}
+		else {
+			_other++
+		}
+	}
+
+	_result += 'SHIORI3FW.Lint: done (undefined: ' + _undefined + ', unused: ' + _unused + ', other: ' + _other
+	if _hidden > 0 {
+		_result += ', hidden in the system dictionary: ' + _hidden
+	}
+	_result + ')'
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.ReadTexts
+//機能　：辞書ファイルを読み、コメントだけの行を除いたテキストの配列を返す
+//        行番号を保つため、除いた行は空行にする
+//引数　：argv＝ファイルのフルパス
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.ReadTexts
+{
+	_result = IARRAY
+	void FCHARSET(GETSETTING('charset.dic'))
+	foreach _argv ; _path {
+		_text = ''
+		_comment = 0
+		if FOPEN(_path, 'r') == 1 {
+			while 1 {
+				_line = FREAD(_path)
+				if GETTYPE(_line) == 1 {
+					break
+				}
+				_trim = CUTSPACE(_line)
+				if _comment {
+					if STRSTR(_trim, '*/', 0) >= 0 {
+						_comment = 0
+					}
+					_line = ''
+				}
+				elseif SUBSTR(_trim, 0, 2) == '//' {
+					_line = ''
+				}
+				elseif SUBSTR(_trim, 0, 2) == '/*' && STRSTR(_trim, '*/', 2) < 0 {
+					_comment = 1
+					_line = ''
+				}
+				_text += _line + LINT_LF
+			}
+			void FCLOSE(_path)
+		}
+		_result ,= _text
+	}
+	void FCHARSET(GETSETTING('charset.file'))
+	_result
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.GetLines
+//機能　：テキストの指定した範囲の行を返す
+//引数　：argv0＝テキスト argv1＝開始行 argv2＝終了行（1から数える）
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.GetLines
+{
+	_lines = SPLIT(_argv[0], LINT_LF)
+	_result = ''
+	for _i = _argv[1] - 1 ; _i < _argv[2] && _i < ARRAYSIZE(_lines) ; _i++ {
+		_result += _lines[_i] + LINT_LF
+	}
+	_result
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.IsInString
+//機能　：テキストの文字列リテラルの中に名前が現れるか
+//引数　：argv0＝テキスト argv1＝名前
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.IsInString
+{
+	_q = '[' + CHR(0x22) + CHR(0x27) + ']'
+	_nq = '[^' + CHR(0x22) + CHR(0x27) + '\n]'
+	RE_GREP(_argv[0], _q + _nq + '*' + SHIORI3FW.Lint.WordPattern(_argv[1]) + _nq + '*' + _q) > 0
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.Suggest
+//機能　：名前の似た候補を、編集距離の近い順に3つまで返す
+//引数　：argv0＝名前 argv1～＝候補
+//戻り値：カンマ区切りの候補（無ければ空文字列）
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.Suggest
+{
+	_name = _argv[0]
+	_len = STRLEN(_name)
+	_max = 1
+	if _len >= 5 {
+		_max = 2
+	}
+	_names = IARRAY
+	_keys = IARRAY
+	for _i = 1 ; _i < _argc ; _i++ {
+		_c = _argv[_i]
+		if _c == _name || ASEARCH(_c, _names) >= 0 {
+			continue
+		}
+		_diff = STRLEN(_c) - _len
+		if _diff > _max || _diff < -_max {
+			continue
+		}
+		_d = SHIORI3FW.Lint.Distance(_name, _c)
+		if _d <= _max {
+			_names ,= _c
+			_keys ,= _d
+		}
+	}
+	_order = ASORT('int,ascending,index', _keys)
+	_result = ''
+	_count = 0
+	foreach _order ; _k {
+		if _count >= 3 {
+			break
+		}
+		if _result != '' {
+			_result += ', '
+		}
+		_result += _names[_k]
+		_count++
+	}
+	_result
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.Distance
+//機能　：2つの文字列の編集距離（レーベンシュタイン距離）
+//引数　：argv0,argv1＝文字列
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.Distance
+{
+	_a = _argv[0]
+	_b = _argv[1]
+	_la = STRLEN(_a)
+	_lb = STRLEN(_b)
+
+	_prev = IARRAY
+	for _j = 0 ; _j <= _lb ; _j++ {
+		_prev ,= _j
+	}
+	for _i = 1 ; _i <= _la ; _i++ {
+		_cur = (IARRAY, _i)
+		_ca = SUBSTR(_a, _i - 1, 1)
+		for _j = 1 ; _j <= _lb ; _j++ {
+			_cost = 1
+			if _ca == SUBSTR(_b, _j - 1, 1) {
+				_cost = 0
+			}
+			_d = _prev[_j - 1] + _cost
+			if _prev[_j] + 1 < _d {
+				_d = _prev[_j] + 1
+			}
+			if _cur[_j - 1] + 1 < _d {
+				_d = _cur[_j - 1] + 1
+			}
+			_cur ,= _d
+		}
+		_prev = _cur
+	}
+	_prev[_lb]
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.IsConditionContext
+//機能　：LINT.GetVarRefs の context が条件式か
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.IsConditionContext
+{
+	_argv[0] == 'if' || _argv[0] == 'elseif' || _argv[0] == 'while' || _argv[0] == 'for-cond' || _argv[0] == 'when'
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.MatchAny
+//機能　：名前が正規表現のどれかに一致するか
+//引数　：argv0＝名前 argv1～＝正規表現
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.MatchAny
+{
+	for _i = 1 ; _i < _argc ; _i++ {
+		if _argv[_i] != '' && RE_SEARCH(_argv[0], _argv[_i]) {
+			1
+			return
+		}
+	}
+	0
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.EscapeRegex
+//機能　：正規表現の特殊文字をエスケープする
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.EscapeRegex
+{
+	RE_REPLACE(_argv[0], '([\\.^$|?*+()\[\]{}])', '\\$1')
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.WordPattern
+//機能　：名前が単語として現れる箇所に一致する正規表現
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.WordPattern
+{
+	'(?<![0-9A-Za-z_.])' + SHIORI3FW.Lint.EscapeRegex(_argv[0]) + '(?![0-9A-Za-z_.])'
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.NormalizePath
+//機能　：パスの区切りを / にそろえる
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.NormalizePath
+{
+	REPLACE(_argv[0], '\', '/')
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.ParentDir
+//機能　：末尾の / を除いたパスの親フォルダ（末尾に / を付ける）
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.ParentDir
+{
+	_path = RE_REPLACE(_argv[0], '/+$', '')
+	_pos = STRSTR(_path, '/', 0)
+	_last = -1
+	while _pos >= 0 {
+		_last = _pos
+		_pos = STRSTR(_path, '/', _pos + 1)
+	}
+	SUBSTR(_path, 0, _last + 1)
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.IsUnder
+//機能　：パスがフォルダの下にあるか（大文字・小文字を区別しない）
+//引数　：argv0＝パス argv1＝末尾に / の付いたフォルダ
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.IsUnder
+{
+	_argv[1] != '' && TOLOWER(SUBSTR(_argv[0], 0, STRLEN(_argv[1]))) == TOLOWER(_argv[1])
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.RelativePath
+//機能　：フォルダからの相対パス（下に無ければそのまま）
+//引数　：argv0＝パス argv1＝末尾に / の付いたフォルダ
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.RelativePath
+{
+	if SHIORI3FW.Lint.IsUnder(_argv[0], _argv[1]) {
+		ERASE(_argv[0], 0, STRLEN(_argv[1]))
+	}
+	else {
+		_argv[0]
+	}
+}
