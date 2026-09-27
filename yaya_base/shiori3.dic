@@ -1564,19 +1564,38 @@ GET_PROPERTY
 	
 	_request = "EXECUTE SSTP/1.1%(C_CRLF)Command: GetProperty%(C_CRLF)Reference0: %(_argv[0])%(C_CRLF)Sender: YAYA%(C_CRLF)Charset: UTF-8%(C_CRLF)%(C_CRLF)"
 	
-	_response = DIRECTSSTP(SHIORI3FW.HWnd[0],_request)
+	_response = DIRECTSSTP(TOINT(SHIORI3FW.HWnd[0]),_request) // DIRECTSSTPのhwndは整数でないといけない
 	if _response == -1 {
 		""
 		return
 	}
-	
+
+#ifdef __AYA_SYSTEM_YAYA6__
+	// YAYA 600系：レスポンスの解析はPARSEHEADERで行う
+	_res = PARSEHEADER(_response)
+	_lin = _res['start']
+
+	if "200" !_in_ _lin && "204" !_in_ _lin {
+		""
+		return
+	}
+
+	// 値は空行より後ろ　末尾の改行は取り除く
+	_value = _res['body']
+	_len = STRLEN(_value)
+	while _len >= 2 && SUBSTR(_value, _len - 2, 2) == C_CRLF {
+		_len -= 2
+		_value = SUBSTR(_value, 0, _len)
+	}
+	_value
+#else
 	_respose_array = SPLIT(_response,C_CRLF)
-	
+
 	if "200" !_in_ _respose_array[0] && "204" !_in_ _respose_array[0] {
 		""
 		return
 	}
-	
+
 	_n = ARRAYSIZE(_respose_array)
 	_value = ""
 	_empty_line_found = 0
@@ -1595,8 +1614,9 @@ GET_PROPERTY
 			}
 		}
 	}
-	
+
 	_value
+#endif
 }
 
 //------------------------------------------------------------------------------
@@ -1613,15 +1633,16 @@ SET_PROPERTY
 	
 	_request = "EXECUTE SSTP/1.1%(C_CRLF)Command: SetProperty%(C_CRLF)Reference0: %(_argv[0])%(C_CRLF)Reference1: %(_argv[1])%(C_CRLF)Sender: YAYA%(C_CRLF)Charset: UTF-8%(C_CRLF)%(C_CRLF)"
 
-	_response = DIRECTSSTP(SHIORI3FW.HWnd[0],_request)
+	_response = DIRECTSSTP(TOINT(SHIORI3FW.HWnd[0]),_request) // DIRECTSSTPのhwndは整数でないといけない
 	if _response == -1 {
 		0
 		return
 	}
-	
-	_respose_array = SPLIT(_response,C_CRLF)
 
-	if "200" _in_ _respose_array[0] || "204" _in_ _respose_array[0] {
+	// 見るのは1行目だけなので、全体を分割しない
+	_lin = _response[0,C_CRLF]
+
+	if "200" _in_ _lin || "204" _in_ _lin {
 		1
 		return
 	}
