@@ -375,6 +375,87 @@ request
 		return
 	}
 
+#ifdef __AYA_SYSTEM_YAYA6__
+	// YAYA 600系：リクエストの解析はPARSEHEADERでまとめて行う
+	if STRSTR(_argv[0], C_CRLF, 0) <= 0 {
+		//1行目すらない！
+		"SHIORI/3.0 400 Bad Request%(C_CRLF)Charset: %(S_CHARSET)%(C_CRLF2)"
+		return
+	}
+
+	_conv = 1 // TOAUTOEXと同じ変換
+	if SHIORI3FW.AUTO_DATA_CONVERT {
+		_conv = 0
+	}
+	_req = PARSEHEADER(_argv[0], _conv)
+	_lin = _req['start']
+
+	// リクエスト種別とプロトコル名の取得　エラーなら400
+	REQ.COMMAND  = _lin[0,' SHIORI']
+	REQ.PROTOCOL = 'SHIORI' + _lin[1,' SHIORI']
+
+	// リクエストヘッダの取得
+	var.req.key   = _req['key']
+	var.req.rawvalue = _req['rawvalue']
+
+	if SHIORI3FW.AUTO_DATA_CONVERT {
+		var.req.value = IARRAY
+		foreach var.req.rawvalue; _value {
+			if ISINTSTR(_value) {
+				var.req.value ,= TOINT(_value)
+			}
+			elseif ISREALSTR(_value) {
+				var.req.value ,= TOREAL(_value)
+			}
+			else {
+				var.req.value ,= REPLACE(_value, C_BYTE1, ',')// バイト値1はカンマ化してしまう
+			}
+		}
+	}
+	else {
+		var.req.value = _req['value']
+	}
+
+	status = ''
+	SHIORI3FW.Eventid=''
+	SHIORI3FW.SecurityLevel='local'//互換性のためデフォルトはlocal
+
+	// 値はTOAUTOEXで変換されていることがあるので、TOSTRで元の文字列に戻す
+	_header = _req['header']
+
+	if HASH_EXIST('Charset', _header) {
+		_value = TOSTR(_header['Charset'])
+		if S_CHARSET != _value {
+			void SETSETTING('charset.output',_value)
+			S_CHARSET = _value
+		}
+	}
+	// イベントID名称を取得
+	if HASH_EXIST('ID', _header) {
+		// 取得　名前先頭が'On'でないなら付加
+		SHIORI3FW.Eventid = TOSTR(_header['ID'])
+		if SUBSTR(SHIORI3FW.Eventid, 0, 2) != 'On' {
+			SHIORI3FW.Eventid = 'On_' + SHIORI3FW.Eventid
+		}
+	}
+	// セキュリティレベル
+	if HASH_EXIST('SecurityLevel', _header) {
+		SHIORI3FW.SecurityLevel = TOSTR(_header['SecurityLevel'])
+	}
+	// ベースウェア名取得
+	if HASH_EXIST('Sender', _header) {
+		_value = TOSTR(_header['Sender'])
+		if basewarenameex == '' {
+			basewarenameex = _value
+		}
+		basewarename = _value
+		sender = _value
+	}
+	//Status
+	if HASH_EXIST('Status', _header) {
+		status = TOSTR(_header['Status'])
+	}
+#else
 	_reqdata = _argv[0]
 	_linestart = 0
 	_lineend = STRSTR(_reqdata, C_CRLF, _linestart)
@@ -470,6 +551,7 @@ request
 			var.req.value ,= TOAUTOEX(_value)
 		}
 	}
+#endif
 
 	if SHIORI3FW.Eventid == 'OnAiTalk' || SHIORI3FW.Eventid == 'OnAITalk' {
 		SHIORI3FW.Eventid = 'OnAITalkNewEvent'
@@ -1575,6 +1657,51 @@ SHIORI3FW.RequestLib
 
 	// 結果の解析
 
+#ifdef __AYA_SYSTEM_YAYA6__
+	// YAYA 600系：レスポンスの解析はPARSEHEADERでまとめて行う
+	_lin = _result[0, C_CRLF]
+
+	// プロトコル名と結果の取得
+	_seppos = STRSTR(_lin, ' ', 0)
+	if _seppos == -1; return
+	LIB.PROTOCOL   = SUBSTR(_lin, 0, _seppos)
+	LIB.STATUSCODE = SUBSTR(_lin, _seppos + 1, STRLEN(_lin) - _seppos - 1)
+
+	// レスポンスヘッダの取得
+	var.lib.result = ''
+
+	if SHIORI3FW.AUTO_DATA_CONVERT {
+		_res = PARSEHEADER(_result)
+		var.lib.key   = _res['key']
+		var.lib.value = IARRAY
+
+		_sz = ARRAYSIZE(var.lib.key)
+		for _i = 0; _i < _sz; _i++ {
+			_value   = _res['rawvalue'][_i]
+			_valuecv = ''
+			if ISINTSTR(_value)
+				_valuecv = TOINT(_value)
+			elseif ISREALSTR(_value)
+				_valuecv = TOREAL(_value)
+			else
+				_valuecv = REPLACE(_value, C_BYTE1, ',')
+
+			var.lib.value ,= _valuecv
+			if var.lib.key[_i] == 'Result' {
+				var.lib.result = _valuecv
+			}
+		}
+	}
+	else {
+		_res = PARSEHEADER(_result, 1) // TOAUTOEXと同じ変換
+		var.lib.key   = _res['key']
+		var.lib.value = _res['value']
+
+		if HASH_EXIST('Result', _res['header']) {
+			var.lib.result = _res['header']['Result']
+		}
+	}
+#else
 	// 改行で分割
 	_lines = RE_SPLIT(_result, C_CRLF)
 
@@ -1625,6 +1752,7 @@ SHIORI3FW.RequestLib
 			var.lib.result = _valuecv
 		}
 	}
+#endif
 }
 
 //------------------------------------------------------------------------------
