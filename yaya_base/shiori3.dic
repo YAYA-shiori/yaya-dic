@@ -324,19 +324,20 @@ C_BYTE1
 //------------------------------------------------------------------------------
 //関数名：AyaTest.Eval
 //機能　：受け取った文字列をEVALして返す
+//備考　：EVALする文字列とローカル変数が衝突しないよう、長い変数名を使う
 //------------------------------------------------------------------------------
 AyaTest.Eval
 {
-	_array = SPLIT(_argv[0],C_CRLF)
-	_result = ''
-	_n = ARRAYSIZE(_array)
+	_AyaTest_Eval_lines = SPLIT(_argv[0],C_CRLF)
+	_AyaTest_Eval_result = ''
+	_AyaTest_Eval_count = ARRAYSIZE(_AyaTest_Eval_lines)
 
-	for _i = 0 ; _i < _n ; _i++ {
-		if _array[_i] {
-			_result += EVAL(_array[_i])
+	for _AyaTest_Eval_index = 0 ; _AyaTest_Eval_index < _AyaTest_Eval_count ; _AyaTest_Eval_index++ {
+		if _AyaTest_Eval_lines[_AyaTest_Eval_index] {
+			_AyaTest_Eval_result += EVAL(_AyaTest_Eval_lines[_AyaTest_Eval_index])
 		}
 	}
-	_result
+	_AyaTest_Eval_result
 }
 
 //------------------------------------------------------------------------------
