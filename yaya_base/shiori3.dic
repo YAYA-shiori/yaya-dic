@@ -2148,6 +2148,75 @@ SHIORI3EV.On_name
 	GETSETTING('coreinfo.name')
 }
 
+//---- AIグラフ（getaistate）のフォールバック ------------------------------------
+// ゴースト側に On_getaistate が無い、または空を返したときに使われる。
+// システム辞書が持っている値だけで、次の6軸のレーダーチャートを作る。
+//   Boot       累計起動回数
+//   Uptime(h)  累計起動時間（時間）。前回までを表示値、今回の起動分を加算値にする
+//   Memory     保持している変数の数
+//   Repertoire 反応できるイベント（On で始まる関数）の数
+//   Talk/h     1時間あたりのランダムトークの回数（aitalkinterval から換算）
+//   Social     communicateratio（%）
+SHIORI3EV.On_getaistate
+{
+	_up_last = TOREAL(ghostupmin_last) / 60
+	_up_now  = TOREAL(ghostupmin) / 60
+	_talk    = 0
+	if aitalkinterval > 0 {
+		_talk = 3600 / aitalkinterval
+	}
+	_memory     = ARRAYSIZE(GETVARLIST())
+	_repertoire = ARRAYSIZE(GETFUNCLIST('On'))
+
+	_values = SHIORI3FW.AIGraphJoin(ghostuptimes, _up_last, _memory, _repertoire, _talk, communicateratio)
+	_labels = 'Boot,Uptime(h),Memory,Repertoire,Talk/h,Social'
+	_adds   = SHIORI3FW.AIGraphJoin(0, _up_now, 0, 0, 0, 0)
+	_max_boot   = SHIORI3FW.AIGraphMax(ghostuptimes)
+	_max_up     = SHIORI3FW.AIGraphMax(_up_last + _up_now)
+	_max_memory = SHIORI3FW.AIGraphMax(_memory)
+	_max_rep    = SHIORI3FW.AIGraphMax(_repertoire)
+	_max_talk   = SHIORI3FW.AIGraphMax(_talk)
+	_maxes      = SHIORI3FW.AIGraphJoin(_max_boot, _max_up, _max_memory, _max_rep, _max_talk, 100)
+
+	_values + C_BYTE1 + _labels + C_BYTE1 + _adds + C_BYTE1 + _maxes
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.AIGraphMax
+//機能　：AIグラフの最大値。値を収められる最小の 10, 20, 50, 100, 200, 500, ... を返す
+//引数　：_argv[0] 値
+//------------------------------------------------------------------------------
+SHIORI3FW.AIGraphMax
+{
+	_steps = (1, 2, 5)
+	_unit  = 10
+	while 1 {
+		foreach _steps ; _k {
+			if _unit * _k >= _argv[0] {
+				_unit * _k
+				return
+			}
+		}
+		_unit *= 10
+	}
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.AIGraphJoin
+//機能　：引数をカンマでつないだ文字列を返す
+//------------------------------------------------------------------------------
+SHIORI3FW.AIGraphJoin
+{
+	_result = ''
+	for _i = 0 ; _i < _argc ; _i++ {
+		if _i > 0 {
+			_result += ','
+		}
+		_result += TOSTR(_argv[_i])
+	}
+	_result
+}
+
 //---- tama対応 ------------------------------------------------------------------
 SHIORI3EV.On_tamaOpen
 {

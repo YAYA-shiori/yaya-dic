@@ -22,6 +22,7 @@
 12. [配列ユーティリティ関数](#12-配列ユーティリティ関数)
 13. [疑似イベント](#13-疑似イベント)
 14. [付録：config.dic の主要設定](#付録configdic-の主要設定)
+    - [付録：AIグラフの既定値（`On_getaistate`）](#付録aiグラフの既定値on_getaistate)
 
 ### optional.dic
 
@@ -513,6 +514,25 @@ OnSHIORI3FW.ChangeSelfInfo
 
 キャラウィンドウが破棄されたときに呼び出されます。
 `reference[0]` にスコープ番号が入ります。
+
+---
+
+## 付録：AIグラフの既定値（`On_getaistate`）
+
+SSP の AIグラフ（レーダーチャート）は、SHIORI リソース `getaistate` で描かれます。ゴースト側に `On_getaistate` が無い、または空を返したときは、システム辞書の `SHIORI3EV.On_getaistate` が次の 6 軸を返します。ゴースト側で `On_getaistate` を定義すれば、そちらが優先されます。
+
+| ラベル | 表示値 | 加算値 | 最大値 |
+|--------|--------|--------|--------|
+| `Boot` | `ghostuptimes`（累計起動回数） | 0 | 段階スケール |
+| `Uptime(h)` | `ghostupmin_last / 60`（前回までの累計起動時間） | `ghostupmin / 60`（今回の起動分） | 段階スケール |
+| `Memory` | `GETVARLIST()` の要素数 | 0 | 段階スケール |
+| `Repertoire` | `GETFUNCLIST('On')` の要素数 | 0 | 段階スケール |
+| `Talk/h` | `3600 / aitalkinterval`（`aitalkinterval` が 0 以下なら 0） | 0 | 段階スケール |
+| `Social` | `communicateratio` | 0 | 100 |
+
+- 段階スケールは、値を収められる最小の `10, 20, 50, 100, 200, 500, …`（`SHIORI3FW.AIGraphMax`）です。
+- `Memory` と `Repertoire` には、システム辞書自身の変数・関数も含まれます。
+- `Uptime(h)` の表示値と加算値は小数です（SSP 2.4.26 以降が小数を扱えます）。
 
 ---
 
