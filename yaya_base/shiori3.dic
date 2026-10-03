@@ -325,8 +325,58 @@ C_BYTE1
 //関数名：AyaTest.Eval
 //機能　：受け取った文字列をEVALして返す
 //備考　：EVALする文字列とローカル変数が衝突しないよう、長い変数名を使う
+//　　　　複数行は、EVALが文の並びを受け付ける版（Tc574-6 / Tc602-9以降）なら
+//　　　　まとめて1回でEVALする（ローカル変数が次の行に持ち越される。Tc574-8 / Tc603-1以降はヒアドキュメントも使える）。
+//　　　　それより前の版では1行ずつEVALして結果をつなげる
 //------------------------------------------------------------------------------
 AyaTest.Eval
+{
+	_AyaTest_Eval_code = _argv[0]
+	_AyaTest_Eval_len = STRLEN(_AyaTest_Eval_code)
+	while _AyaTest_Eval_len >= 2 && SUBSTR(_AyaTest_Eval_code, _AyaTest_Eval_len - 2, 2) == C_CRLF {
+		_AyaTest_Eval_len -= 2
+		_AyaTest_Eval_code = SUBSTR(_AyaTest_Eval_code, 0, _AyaTest_Eval_len)
+	}
+
+	if STRSTR(_AyaTest_Eval_code, C_CRLF, 0) < 0 || !AyaTest.EvalAcceptsStatements {
+		AyaTest.EvalLines(_AyaTest_Eval_code)
+		return
+	}
+	EVAL(REPLACE(_AyaTest_Eval_code, C_CRLF, CHR(0xa)))
+}
+
+//------------------------------------------------------------------------------
+//関数名：AyaTest.EvalAcceptsStatements
+//機能　：EVALが文の並び（複数行や;で区切った文）を受け付ける版なら1を返す
+//------------------------------------------------------------------------------
+AyaTest.EvalAcceptsStatements
+{
+	_ver = GETSETTING('coreinfo.version')
+	if SUBSTR(_ver, 0, 2) != 'Tc' {
+		0
+		return
+	}
+	_hyphen = STRSTR(_ver, '-', 0)
+	if _hyphen < 0 {
+		0
+		return
+	}
+	_major = TOINT(SUBSTR(_ver, 2, _hyphen - 2))
+	_build = TOINT(SUBSTR(_ver, _hyphen + 1, STRLEN(_ver)))
+	if _major >= 600 {
+		_major > 602 || (_major == 602 && _build >= 9)
+	}
+	else {
+		_major > 574 || (_major == 574 && _build >= 6)
+	}
+}
+
+//------------------------------------------------------------------------------
+//関数名：AyaTest.EvalLines
+//機能　：受け取った文字列を1行ずつEVALし、結果をつなげて返す
+//備考　：EVALする文字列とローカル変数が衝突しないよう、長い変数名を使う
+//------------------------------------------------------------------------------
+AyaTest.EvalLines
 {
 	_AyaTest_Eval_lines = SPLIT(_argv[0],C_CRLF)
 	_AyaTest_Eval_result = ''
