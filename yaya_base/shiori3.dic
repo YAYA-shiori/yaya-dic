@@ -1601,6 +1601,73 @@ FUNCTIONEX
 SAORI { FUNCTIONEX(_argv) }
 
 //------------------------------------------------------------------------------
+//関数名：EXECUTE_SSTP
+//機能　：システム関数DIRECTSSTPを使って、本体にEXECUTE SSTPのコマンドを送り、結果を得ます
+//引数　：_argv[0] = コマンド名（GetVersion、GetGhostNameList など）
+//　　　　_argv[1]以降 = Reference0以降に入れる値
+//返値　：失敗時空文字列、成功時は追加データ（空行より後ろ。末尾の改行は取り除く）
+//　　　　複数行の結果（GetGhostNameList など）は C_CRLF 区切りの文字列になる
+//　　　　ステータス行の結果（"200 OK" など）は SSTP.STATUSCODE に、
+//　　　　その数値は SSTP.STATUS に入る（送信できなかったときは '' と 0）
+//------------------------------------------------------------------------------
+EXECUTE_SSTP
+{
+	SSTP.STATUSCODE = ''
+	SSTP.STATUS = 0
+
+	if _argc < 1 {
+		""
+		return
+	}
+
+	_request = "EXECUTE SSTP/1.1%(C_CRLF)Command: %(_argv[0])%(C_CRLF)"
+	for _i = 1 ; _i < _argc ; _i++ {
+		_request += "Reference%(_i - 1): %(_argv[_i])%(C_CRLF)"
+	}
+	_request += "Sender: YAYA%(C_CRLF)Charset: UTF-8%(C_CRLF)%(C_CRLF)"
+
+	_response = DIRECTSSTP(TOINT(SHIORI3FW.HWnd[0]),_request) // DIRECTSSTPのhwndは整数でないといけない
+	if _response == -1 {
+		""
+		return
+	}
+
+#ifdef __AYA_SYSTEM_YAYA6__
+	// YAYA 600系：レスポンスの解析はPARSEHEADERで行う
+	_res = PARSEHEADER(_response)
+	_lin = _res['start']
+	_value = _res['body']
+#else
+	_lin = _response[0,C_CRLF]
+	_pos = STRSTR(_response, C_CRLF + C_CRLF, 0)
+	_value = ""
+	if _pos >= 0 {
+		_value = SUBSTR(_response, _pos + 4, STRLEN(_response) - _pos - 4)
+	}
+#endif
+
+	// ステータス行 "SSTP/1.x 200 OK" からコードと理由を取り出す
+	_seppos = STRSTR(_lin, ' ', 0)
+	if _seppos >= 0 {
+		SSTP.STATUSCODE = SUBSTR(_lin, _seppos + 1, STRLEN(_lin) - _seppos - 1)
+		SSTP.STATUS = TOINT(SSTP.STATUSCODE[0, ' '])
+	}
+
+	if SSTP.STATUS < 200 || SSTP.STATUS >= 300 {
+		""
+		return
+	}
+
+	// 末尾の改行は取り除く
+	_len = STRLEN(_value)
+	while _len >= 2 && SUBSTR(_value, _len - 2, 2) == C_CRLF {
+		_len -= 2
+		_value = SUBSTR(_value, 0, _len)
+	}
+	_value
+}
+
+//------------------------------------------------------------------------------
 //関数名：GET_PROPERTY
 //機能　：システム関数DIRECTSSTPを使って、指定した本体プロパティを取得します
 //引数　：_argv[0] = プロパティ名
@@ -1612,68 +1679,15 @@ GET_PROPERTY
 		""
 		return
 	}
-	
-	_request = "EXECUTE SSTP/1.1%(C_CRLF)Command: GetProperty%(C_CRLF)Reference0: %(_argv[0])%(C_CRLF)Sender: YAYA%(C_CRLF)Charset: UTF-8%(C_CRLF)%(C_CRLF)"
-	
-	_response = DIRECTSSTP(TOINT(SHIORI3FW.HWnd[0]),_request) // DIRECTSSTPのhwndは整数でないといけない
-	if _response == -1 {
-		""
-		return
-	}
 
-#ifdef __AYA_SYSTEM_YAYA6__
-	// YAYA 600系：レスポンスの解析はPARSEHEADERで行う
-	_res = PARSEHEADER(_response)
-	_lin = _res['start']
-
-	if "200" !_in_ _lin && "204" !_in_ _lin {
-		""
-		return
-	}
-
-	// 値は空行より後ろ　末尾の改行は取り除く
-	_value = _res['body']
-	_len = STRLEN(_value)
-	while _len >= 2 && SUBSTR(_value, _len - 2, 2) == C_CRLF {
-		_len -= 2
-		_value = SUBSTR(_value, 0, _len)
-	}
-	_value
-#else
-	_respose_array = SPLIT(_response,C_CRLF)
-
-	if "200" !_in_ _respose_array[0] && "204" !_in_ _respose_array[0] {
-		""
-		return
-	}
-
-	_n = ARRAYSIZE(_respose_array)
-	_value = ""
-	_empty_line_found = 0
-	for _i = 1 ; _i < _n ; _i++ {
-		if _respose_array[_i] == "" {
-			_empty_line_found = 1
-			continue
-		}
-		if _empty_line_found {
-			_value += _respose_array[_i]
-			if _empty_line_found >= 2 {
-				_value += C_CRLF
-			}
-			else {
-				_empty_line_found = 2
-			}
-		}
-	}
-
-	_value
-#endif
+	EXECUTE_SSTP('GetProperty', _argv[0])
 }
 
 //------------------------------------------------------------------------------
 //関数名：SET_PROPERTY
 //機能　：システム関数DIRECTSSTPを使って、指定した本体プロパティを設定します
 //引数　：_argv[0] = プロパティ名 _argv[1] = 値
+//返値　：成功時1、失敗時0
 //------------------------------------------------------------------------------
 SET_PROPERTY
 {
@@ -1681,24 +1695,9 @@ SET_PROPERTY
 		0
 		return
 	}
-	
-	_request = "EXECUTE SSTP/1.1%(C_CRLF)Command: SetProperty%(C_CRLF)Reference0: %(_argv[0])%(C_CRLF)Reference1: %(_argv[1])%(C_CRLF)Sender: YAYA%(C_CRLF)Charset: UTF-8%(C_CRLF)%(C_CRLF)"
 
-	_response = DIRECTSSTP(TOINT(SHIORI3FW.HWnd[0]),_request) // DIRECTSSTPのhwndは整数でないといけない
-	if _response == -1 {
-		0
-		return
-	}
-
-	// 見るのは1行目だけなので、全体を分割しない
-	_lin = _response[0,C_CRLF]
-
-	if "200" _in_ _lin || "204" _in_ _lin {
-		1
-		return
-	}
-	0
-	return
+	_dummy = EXECUTE_SSTP('SetProperty', _argv[0], _argv[1])
+	SSTP.STATUS >= 200 && SSTP.STATUS < 300
 }
 
 //------------------------------------------------------------------------------

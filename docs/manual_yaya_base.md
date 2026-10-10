@@ -151,11 +151,33 @@ _result = SAORI('kawari8.dll', 'こんにちは')
 
 ## 4. ベースウェアプロパティ関数
 
-SSPなど、DIRECTSSTP対応ベースウェアのプロパティを読み書きします。
+SSPなど、DIRECTSSTP対応ベースウェアのプロパティを読み書きしたり、EXECUTE SSTPのコマンドを実行したりします。
+
+### `EXECUTE_SSTP(コマンド名, 引数0, 引数1, ...)`
+
+DIRECTSSTPでベースウェアに `EXECUTE SSTP/1.1` のリクエストを送り、結果（追加データ）を返します。2つめ以降の引数は `Reference0`、`Reference1`、… として送られます。使えるコマンドはベースウェアのSSTP仕様（`GetVersion`、`GetGhostNameList`、`GetStatus`、`GetCookie` など）を参照してください。
+
+- **引数**：`_argv[0]` — コマンド名、`_argv[1]` 以降 — `Reference0` 以降に入れる値
+- **戻り値**：成功時（ステータスが2xx）は空行より後ろの追加データ（末尾の改行は取り除く）、失敗時は空文字列。一覧を返すコマンドの結果は `C_CRLF` 区切りの文字列になります
+- **結果の変数**：`SSTP.STATUSCODE` にステータス行の結果（`200 OK`、`501 Not Implemented` など）、`SSTP.STATUS` にその数値が入ります。送信できなかったときは `''` と `0` です
+
+追加データの無いコマンドは、成功しても空文字列を返すので、成否は `SSTP.STATUS` で確かめてください。
+
+```
+_ver = EXECUTE_SSTP('GetShortVersion')
+_ghosts = SPLIT(EXECUTE_SSTP('GetGhostNameList'), C_CRLF)
+
+_dummy = EXECUTE_SSTP('SetCookie', 'mykey', 'value')
+if SSTP.STATUS == 200 || SSTP.STATUS == 204 {
+	// 成功
+}
+```
+
+---
 
 ### `GET_PROPERTY(プロパティ名)`
 
-指定したベースウェアのプロパティ値を取得します。
+指定したベースウェアのプロパティ値を取得します。`EXECUTE_SSTP('GetProperty', プロパティ名)` と同じで、`SSTP.STATUSCODE` と `SSTP.STATUS` も同じように入ります（`SET_PROPERTY` も同様）。
 
 - **引数**：`_argv[0]` — プロパティ名
 - **戻り値**：成功時はプロパティ値の文字列、失敗時は空文字列
