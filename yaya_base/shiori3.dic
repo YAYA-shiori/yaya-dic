@@ -1605,6 +1605,7 @@ SAORI { FUNCTIONEX(_argv) }
 //機能　：システム関数DIRECTSSTPを使って、本体にEXECUTE SSTPのコマンドを送り、結果を得ます
 //引数　：_argv[0] = コマンド名（GetVersion、GetGhostNameList など）
 //　　　　_argv[1]以降 = Reference0以降に入れる値
+//　　　　コマンドや値に改行（CR・LF）が含まれるときは送らない
 //返値　：失敗時空文字列、成功時は追加データ（空行より後ろ。末尾の改行は取り除く）
 //　　　　複数行の結果（GetGhostNameList など）は C_CRLF 区切りの文字列になる
 //　　　　ステータス行の結果（"200 OK" など）は SSTP.STATUSCODE に、
@@ -1618,6 +1619,15 @@ EXECUTE_SSTP
 	if _argc < 1 {
 		""
 		return
+	}
+
+	// 改行はヘッダの区切りになるので、コマンドや引数に含めて送らない（ヘッダを書き足せてしまう）
+	for _i = 0 ; _i < _argc ; _i++ {
+		_arg = TOSTR(_argv[_i])
+		if STRSTR(_arg, CHR(0xd), 0) >= 0 || STRSTR(_arg, CHR(0xa), 0) >= 0 {
+			""
+			return
+		}
 	}
 
 	_request = "EXECUTE SSTP/1.1%(C_CRLF)Command: %(_argv[0])%(C_CRLF)"
