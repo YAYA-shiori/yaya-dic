@@ -157,6 +157,8 @@ load
 	SHIORI3FW.LastErrorDescription = ''
 
 	SAORI.DllList          = IARRAY
+	SAORI.InternalList     = IARRAY
+	SAORI.InternalOk       = IARRAY
 	basewarename           = ''
 	basewarenameex         = ''
 	sender                 = ''
@@ -240,6 +242,8 @@ var.lib.key
 var.lib.value
 var.lib.result
 SAORI.DllList
+SAORI.InternalList
+SAORI.InternalOk
 selfname
 sakuraname
 keroname
@@ -1566,11 +1570,18 @@ FUNCTIONLOAD
 //------------------------------------------------------------------------------
 //関数名：FUNCTIONEX
 //機能　：SAORIを実行します
-//引数　：_argv[0]　 対象DLL名
+//        対象が internal_ で始まるときは、DLLを読み込まず、DIRECTSSTPでベースウェアの
+//        内蔵モジュールを呼びます（SAORI over DirectSSTP）。使い方と返り値は同じです
+//引数　：_argv[0]　 対象DLL名（内蔵モジュールなら internal_crypto など）
 //　　　　_argv[1]～ Argument0～
 //------------------------------------------------------------------------------
 FUNCTIONEX
 {
+	if SHIORI3FW.IsInternalSaori(_argv[0]) {
+		SHIORI3FW.ExecuteInternalSaori(_argv)
+		return
+	}
+
 	if FUNCTIONLOAD(_argv[0]) == 0 {
 		0
 		return
@@ -1599,6 +1610,108 @@ FUNCTIONEX
 //        気にするほどではありません。
 //------------------------------------------------------------------------------
 SAORI { FUNCTIONEX(_argv) }
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.InternalSaoriModule
+//機能　：SAORI over DirectSSTPのModule名にそろえます（小文字にし、末尾の .dll を除く）
+//引数　：_argv[0] 対象DLL名
+//------------------------------------------------------------------------------
+SHIORI3FW.InternalSaoriModule
+{
+	_module = TOLOWER(TOSTR(_argv[0]))
+	_len = STRLEN(_module)
+	if _len > 4 && SUBSTR(_module, _len - 4, 4) == '.dll' {
+		_module = SUBSTR(_module, 0, _len - 4)
+	}
+	_module
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.IsInternalSaori
+//機能　：ベースウェアの内蔵モジュール（internal_ で始まる名前）かどうかを返します
+//引数　：_argv[0] 対象DLL名
+//------------------------------------------------------------------------------
+SHIORI3FW.IsInternalSaori
+{
+	SUBSTR(SHIORI3FW.InternalSaoriModule(_argv[0]), 0, 9) == 'internal_'
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.InternalSaoriAvailable
+//機能　：ベースウェアがそのモジュールを持っているかを返します（1:ある 0:ない）
+//        初回に GET Version SAORI/1.0 で確かめ、モジュールごとに結果を覚えます
+//        送れなかったとき（ゴーストの窓が分からない、タイムアウト）は覚えません
+//引数　：_argv[0] Module名（SHIORI3FW.InternalSaoriModuleでそろえたもの）
+//------------------------------------------------------------------------------
+SHIORI3FW.InternalSaoriAvailable
+{
+	_index = ASEARCH(_argv[0], SAORI.InternalList)
+	if _index >= 0 {
+		SAORI.InternalOk[_index]
+		return
+	}
+
+	_hwnd = TOINT(SHIORI3FW.HWnd[0])
+	if _hwnd == 0 {
+		0
+		return
+	}
+
+	_response = DIRECTSSTP(_hwnd, "GET Version SAORI/1.0%(C_CRLF)Module: %(_argv[0])%(C_CRLF)Charset: UTF-8%(C_CRLF)Sender: AYA%(C_CRLF2)")
+	if _response == -1 {
+		0
+		return
+	}
+
+	// SAORI/1.0 200 で始まる返事でなければ使えない（旧SSPはSSTPのエラーを返す）
+	_ok = STRSTR(_response, 'SAORI/1.0 200', 0) == 0
+	SAORI.InternalList ,= _argv[0]
+	SAORI.InternalOk ,= _ok
+	_ok
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.ExecuteInternalSaori
+//機能　：DirectSSTPで、ベースウェアの内蔵モジュールをSAORIとして実行します
+//        返り値と valueex* はFUNCTIONEXと同じ。使えないとき・送れないときは 0
+//引数　：_argv[0]　 モジュール名（internal_crypto。.dll が付いていてもよい）
+//　　　　_argv[1]～ Argument0～
+//------------------------------------------------------------------------------
+SHIORI3FW.ExecuteInternalSaori
+{
+	_module = SHIORI3FW.InternalSaoriModule(_argv[0])
+	if SHIORI3FW.InternalSaoriAvailable(_module) == 0 {
+		0
+		return
+	}
+
+	// 改行はヘッダの区切りになるので、引数に含めて送らない（ヘッダを書き足せてしまう）
+	// 改行や前後の空白を含むデータは、各関数の --data-in=base64 などの形式で渡す
+	for _i = 1; _i < _argc; _i++ {
+		_arg = TOSTR(_argv[_i])
+		if STRSTR(_arg, CHR(0xd), 0) >= 0 || STRSTR(_arg, CHR(0xa), 0) >= 0 {
+			0
+			return
+		}
+	}
+
+	// 応答の文字コードはUTF-8で固定する（要求のCharsetと同じ文字コードで返るため）
+	_request = "EXECUTE SAORI/1.0%(C_CRLF)Module: %(_module)%(C_CRLF)Charset: UTF-8%(C_CRLF)Sender: AYA%(C_CRLF)SecurityLevel: Local%(C_CRLF)"
+	for _i = 1; _i < _argc; _i++ {
+		_request += "Argument%(_i - 1): %(_argv[_i])%(C_CRLF)"
+	}
+	_request += C_CRLF
+
+	_response = DIRECTSSTP(TOINT(SHIORI3FW.HWnd[0]), _request)
+	if _response == -1 {
+		_response = ''
+	}
+	SHIORI3FW.ParseLibResponse(_response)
+
+	if var.lib.result != ''
+		var.lib.result
+	SHIORI3FW.MakeValueexVariable
+}
 
 //------------------------------------------------------------------------------
 //関数名：EXECUTE_SSTP
@@ -1730,11 +1843,25 @@ SHIORI3FW.SendGETVersion
 //------------------------------------------------------------------------------
 SHIORI3FW.RequestLib
 {
+	// リクエスト送出と結果の解析
+	SHIORI3FW.ParseLibResponse(REQUESTLIB(_argv[0], _argv[1]))
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.ParseLibResponse
+//機能　：SAORI/1.0の応答を解析して、LIB.PROTOCOL・LIB.STATUSCODE・var.lib.key・
+//        var.lib.value・var.lib.result に入れます
+//引数　：_argv[0] 応答の文字列（空文字列なら、すべて空にする）
+//------------------------------------------------------------------------------
+SHIORI3FW.ParseLibResponse
+{
 	LIB.PROTOCOL   = ''
 	LIB.STATUSCODE = ''
+	var.lib.key    = IARRAY
+	var.lib.value  = IARRAY
+	var.lib.result = ''
 
-	// リクエスト送出
-	_result = REQUESTLIB(_argv[0], _argv[1])
+	_result = _argv[0]
 
 	// 結果の解析
 

@@ -137,11 +137,26 @@ _result = FUNCTIONEX('kawari8.dll', 'こんにちは')
 // 追加の戻り値は valueex[0], valueex[1], ... で参照
 ```
 
+#### ベースウェアの内蔵モジュール（SAORI over DirectSSTP）
+
+`_argv[0]` が `internal_` で始まるとき（`internal_crypto`、`internal_time.dll` など。大文字小文字は区別せず、末尾の `.dll` は付いていてもよい）は、DLLを読み込まず、`DIRECTSSTP` でベースウェア（SSP 2.9.13以降）の内蔵モジュールを呼びます。書き方、戻り値、`valueex`、`LIB.STATUSCODE` は、DLLのSAORIと同じです。モジュールと関数は [SAORI over DirectSSTP](https://ssp.shillest.net/ukadoc/manual/spec_saori_ex.html) を参照してください。
+
+```
+_hash = FUNCTIONEX('internal_crypto', 'Digest', 'sha256', 'abc')
+_text = FUNCTIONEX('internal_time', 'Format', 0, '%Y/%m/%d', '--tz=+09:00')
+```
+
+- そのモジュールが使えないとき（旧SSP、SSP以外のベースウェア、知らないモジュール）は `0` を返します。使えるかどうかは、モジュールごとに最初の1回だけ `GET Version SAORI/1.0` で確かめて覚えます。ゴーストの窓（`SHIORI3FW.HWnd[0]`）がまだ分からない起動直後は、覚えずに `0` を返します。
+- 失敗したとき（400、500）の `Result` は空で、`LIB.STATUSCODE` に `400 Bad Request` などが入ります。失敗の理由（`ErrorDescription`）は `var.lib.key` / `var.lib.value` から読めます。
+- 引数に改行（CR・LF）が含まれるときは、ヘッダを書き足せてしまうので送らず、`0` を返します。改行や前後の空白を含むデータは、`--data-in=base64` などの形式で渡してください。
+- 文字コードはUTF-8で固定です。
+- 時間のかかる処理（`DeriveKey`、`HashPassword` など）には `--async=識別子` を付けてください。結果はあとでイベント（`OnInternalSaoriComplete` など）で届き、`FUNCTIONEX` の戻り値は空（`LIB.STATUSCODE` は `204 No Content`）です。
+
 ---
 
 ### `SAORI(dll名, 引数0, 引数1, ...)`
 
-`FUNCTIONEX` のシノニム（別名）です。書き方が `FUNCTIONEX` と同一です。
+`FUNCTIONEX` のシノニム（別名）です。書き方が `FUNCTIONEX` と同一です（`internal_` の内蔵モジュールも同じ）。
 
 ```
 _result = SAORI('kawari8.dll', 'こんにちは')
