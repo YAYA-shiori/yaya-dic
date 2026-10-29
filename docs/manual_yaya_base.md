@@ -847,6 +847,26 @@ OnNetworkUpdateComplete
 ?? SHIORI3FW.Lint.Run('system')
 ```
 
+### `ShioriLint`（SHIORI イベント）
+
+里々（satori）の `ShioriLint` と同じ形で、辞書の検査結果を返します。ツールが里々と YAYA を同じ方法で検査できます。`SecurityLevel: local` の `GET` で `ID: ShioriLint` を送ると、`SHIORI3EV.On_ShioriLint` が `SHIORI3FW.Lint.Run` と同じ検査をします。`Has_Event` / `Get_Supported_Events` にも現れます。
+
+- **Reference0**：オプション（`SHIORI3FW.Lint.Run` と同じ。省略可）
+- **応答**：`Value` は返さず（`204 No Content`）、検査結果を 1 件 1 要素で、バイト値 1 区切りの `ErrorLevel` と `ErrorDescription` ヘッダに並べます。指摘が 1 件も無いときは、どちらのヘッダも付きません。
+  - `ErrorDescription`：`ファイル(行) : レベル: 種類 '名前' in 関数名 (did you mean: 候補)`。ファイルは `yaya.dll` のあるフォルダからの相対パスです。
+  - `ErrorLevel`：`unused …` は `notice`、それ以外（`read undefined …`、`assignment in condition`）は `warning`。
+- **件数の上限**：全体で 1000 件、`notice` は 100 件までです（里々と同じ）。超えた分は省略し、最後に `info` で `SHIORI3FW.Lint: n more findings were omitted` と知らせます。
+- **検査できないとき**：YAYA が Tc574-1 より古いと、`error` で理由を 1 件だけ返します。
+- `SecurityLevel: external` では、`ExternalEvent.ShioriLint` が無いため `204` のまま何も返しません。
+
+```
+GET SHIORI/3.0
+Charset: UTF-8
+Sender: test
+SecurityLevel: local
+ID: ShioriLint
+```
+
 #### 使われているとみなすもの
 
 - 関数：`On` で始まるもの（イベント・リソース・疑似イベント）、`SHIORI3EV.`、`shiori.On`、`load` / `unload` / `request`

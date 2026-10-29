@@ -6,12 +6,18 @@
 //未使用の関数・変数、未定義の変数の読み出し、条件式内の代入を探します。
 //
 //使い方：SHIORI3FW.Lint.Run の戻り値を表示する（玉やtamacから '?? SHIORI3FW.Lint.Run'）
+//        または、里々の ShioriLint と同じ形で、SHIORI3EV.On_ShioriLint の
+//        ErrorLevel / ErrorDescription ヘッダを受け取る
 //******************************************************************************
 
 #define	LINT_TAB	CHR(9)
 #define	LINT_LF		CHR(10)
 #define	LINT_SEP	CHR(1)
 #define	LINT_SELF	'SHIORI3FW.Lint.'
+
+//ShioriLint の応答に入れる件数の上限（里々の ShioriLint と同じ）
+#define	LINT_MAX_MESSAGES	1000
+#define	LINT_MAX_NOTICES	100
 
 //------------------------------------------------------------------------------
 //関数名：SHIORI3FW.Lint.Run
@@ -24,14 +30,49 @@
 //------------------------------------------------------------------------------
 SHIORI3FW.Lint.Run
 {
-	if ISFUNC('LINT.GetVarRefs') != 2 || ISFUNC('GETFUNCINFO') != 2 {
-		'SHIORI3FW.Lint: LINT.GetVarRefs is not available in this YAYA (' + GETSETTING('coreinfo.version') + '). Tc574-1 or later is needed.'
+	_unavailable = SHIORI3FW.Lint.Unavailable
+	if _unavailable != '' {
+		_unavailable
 		return
 	}
 
-	_option = ',' + TOLOWER(REPLACE(_argv[0], ' ', '')) + ','
-	_include_system = (STRSTR(_option, ',system,', 0) >= 0)
+	SHIORI3FW.Lint.Format(SHIORI3FW.Lint.Collect, SHIORI3FW.Lint.IncludeSystem(_argv[0]))
+}
 
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.Unavailable
+//機能　：この YAYA で検査できないときの理由を返す
+//戻り値：検査できないときは理由の文字列、できるときは空文字列
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.Unavailable
+{
+	if ISFUNC('LINT.GetVarRefs') != 2 || ISFUNC('GETFUNCINFO') != 2 {
+		'SHIORI3FW.Lint: LINT.GetVarRefs is not available in this YAYA (' + GETSETTING('coreinfo.version') + '). Tc574-1 or later is needed.'
+	}
+	else {
+		''
+	}
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.IncludeSystem
+//機能　：オプションが、システム辞書の結果も出す指定か
+//引数　：argv0＝オプション（カンマ区切り、省略可）
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.IncludeSystem
+{
+	_option = ',' + TOLOWER(REPLACE(_argv[0], ' ', '')) + ','
+	STRSTR(_option, ',system,', 0) >= 0
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.Collect
+//機能　：読み込み済みの辞書を検査する
+//        SHIORI3FW.Lint.Unavailable が空文字列のときだけ呼ぶこと
+//戻り値：検査結果の配列（SHIORI3FW.Lint.Finding の形式。システム辞書の分も含む）
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.Collect
+{
 	_looplimit = GETSETTING('looplimit')
 	void SETSETTING('looplimit', '0')
 
@@ -279,7 +320,7 @@ SHIORI3FW.Lint.Run
 
 	void SETSETTING('looplimit', _looplimit)
 
-	SHIORI3FW.Lint.Format(_findings, _include_system)
+	_findings
 }
 
 //------------------------------------------------------------------------------
@@ -387,39 +428,24 @@ SHIORI3FW.Lint.Format
 {
 	_include_system = _argv[_argc - 1]
 
-	_items = IARRAY
-	_keys = IARRAY
 	_hidden = 0
+	if !_include_system {
+		for _i = 0 ; _i < _argc - 1 ; _i++ {
+			_fields = SPLIT(_argv[_i], LINT_TAB)
+			if TOINT(_fields[6]) {
+				_hidden++
+			}
+		}
+	}
+
 	_undefined = 0
 	_unused = 0
 	_other = 0
-	for _i = 0 ; _i < _argc - 1 ; _i++ {
-		_fields = SPLIT(_argv[_i], LINT_TAB)
-		if TOINT(_fields[6]) && !_include_system {
-			_hidden++
-			continue
-		}
-		_items ,= _argv[_i]
-		_keys ,= _fields[0] + LINT_SEP + RE_REPLACE('00000000' + _fields[1], '^0*(?=\d{8}$)', '') + LINT_SEP + _fields[3]
-	}
-
 	_result = ''
-	_prev = ''
-	_order = ASORT('string,ascending,index', _keys)
-	foreach _order ; _k {
-		_fields = SPLIT(_items[_k], LINT_TAB)
-		_line = _fields[0] + ':' + _fields[1] + ': ' + _fields[2] + " '" + _fields[3] + "'"
-		if _fields[4] != '' {
-			_line += ' in ' + _fields[4]
-		}
-		if _fields[5] != '' {
-			_line += ' (did you mean: ' + _fields[5] + ')'
-		}
-		if _line == _prev {
-			continue
-		}
-		_prev = _line
-		_result += _line + LINT_LF
+	_ordered = SHIORI3FW.Lint.Order(_argv)
+	foreach _ordered ; _item {
+		_fields = SPLIT(_item, LINT_TAB)
+		_result += _fields[0] + ':' + _fields[1] + ': ' + SHIORI3FW.Lint.Message(_item) + LINT_LF
 
 		if STRSTR(_fields[2], 'undefined', 0) >= 0 {
 			_undefined++
@@ -437,6 +463,125 @@ SHIORI3FW.Lint.Format
 		_result += ', hidden in the system dictionary: ' + _hidden
 	}
 	_result + ')'
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.Order
+//機能　：検査結果から、表示するものだけをファイル・行の順に並べて返す
+//        システム辞書の結果は、指定があるときだけ含める。同じ結果は1つにまとめる
+//引数　：argv0～＝検査結果の配列 最後＝システム辞書の結果も出すなら1
+//戻り値：検査結果の配列（SHIORI3FW.Lint.Finding の形式）
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.Order
+{
+	_include_system = _argv[_argc - 1]
+
+	_items = IARRAY
+	_keys = IARRAY
+	for _i = 0 ; _i < _argc - 1 ; _i++ {
+		_fields = SPLIT(_argv[_i], LINT_TAB)
+		if TOINT(_fields[6]) && !_include_system {
+			continue
+		}
+		_items ,= _argv[_i]
+		_keys ,= _fields[0] + LINT_SEP + RE_REPLACE('00000000' + _fields[1], '^0*(?=\d{8}$)', '') + LINT_SEP + _fields[3]
+	}
+
+	_result = IARRAY
+	_prev = ''
+	_order = ASORT('string,ascending,index', _keys)
+	foreach _order ; _k {
+		if _items[_k] == _prev {
+			continue
+		}
+		_prev = _items[_k]
+		_result ,= _items[_k]
+	}
+	_result
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.Message
+//機能　：検査結果1件の内容を「種類 '名前' in 関数名 (did you mean: 候補)」の形にする
+//引数　：argv0＝検査結果1件（SHIORI3FW.Lint.Finding の形式）
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.Message
+{
+	_fields = SPLIT(_argv[0], LINT_TAB)
+	_text = _fields[2] + " '" + _fields[3] + "'"
+	if _fields[4] != '' {
+		_text += ' in ' + _fields[4]
+	}
+	if _fields[5] != '' {
+		_text += ' (did you mean: ' + _fields[5] + ')'
+	}
+	_text
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3FW.Lint.Level
+//機能　：検査結果の種類に対応する ErrorLevel を返す
+//引数　：argv0＝種類（unused function など）
+//戻り値：未使用は notice、それ以外（未定義の読み出し、条件式内の代入）は warning
+//------------------------------------------------------------------------------
+SHIORI3FW.Lint.Level
+{
+	if SUBSTR(_argv[0], 0, 6) == 'unused' {
+		'notice'
+	}
+	else {
+		'warning'
+	}
+}
+
+//------------------------------------------------------------------------------
+//関数名：SHIORI3EV.On_ShioriLint
+//機能　：辞書を検査し、結果を ErrorLevel / ErrorDescription ヘッダで返す
+//        里々の ShioriLint と同じ形式で、1件ごとに
+//          ErrorLevel       ： error / warning / notice / info
+//          ErrorDescription ： 「ファイル(行) : レベル: 種類 '名前' in 関数名」
+//        を、バイト値1で区切って並べる。Value は返さない（204）
+//        件数が多いときは打ち切って、info で省略した件数を知らせる
+//引数　：reference[0]＝オプション（SHIORI3FW.Lint.Run と同じ。省略可）
+//------------------------------------------------------------------------------
+SHIORI3EV.On_ShioriLint : void
+{
+	_unavailable = SHIORI3FW.Lint.Unavailable
+	if _unavailable != '' {
+		SHIORI3FW.PushErrorAlart('error', _unavailable)
+		return
+	}
+
+	_ordered = SHIORI3FW.Lint.Order(SHIORI3FW.Lint.Collect, SHIORI3FW.Lint.IncludeSystem(reference[0]))
+
+	//区切りと衝突する文字は空白にする
+	_unsafe = '[' + CHR(1) + CHR(13) + CHR(10) + ']'
+
+	_levels = IARRAY
+	_texts = IARRAY
+	_notices = 0
+	_omitted = 0
+	foreach _ordered ; _item {
+		_fields = SPLIT(_item, LINT_TAB)
+		_level = SHIORI3FW.Lint.Level(_fields[2])
+		if ARRAYSIZE(_levels) >= LINT_MAX_MESSAGES || (_level == 'notice' && _notices >= LINT_MAX_NOTICES) {
+			_omitted++
+			continue
+		}
+		if _level == 'notice' {
+			_notices++
+		}
+		_levels ,= _level
+		_texts ,= RE_REPLACE(_fields[0] + '(' + _fields[1] + ') : ' + _level + ': ' + SHIORI3FW.Lint.Message(_item), _unsafe, ' ')
+	}
+	if _omitted > 0 {
+		_levels ,= 'info'
+		_texts ,= 'SHIORI3FW.Lint: ' + _omitted + ' more findings were omitted'
+	}
+
+	if ARRAYSIZE(_levels) > 0 {
+		SHIORI3FW.PushErrorAlart(JOIN(_levels, LINT_SEP), JOIN(_texts, LINT_SEP))
+	}
 }
 
 //------------------------------------------------------------------------------
